@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException
 from datetime import datetime        
 from dotenv import load_dotenv
 from schema import EnvironmentalSensorDataIn, Automation, Sensors, Profile
+from routes.actuator import router as actuator_router
+from routes.action_log import router as action_log_router
 
 # Import Firebase initialization from firebase_config.py
 from firebase_config import initialize_firebase_admin, get_firestore_db
@@ -70,3 +72,7 @@ async def create_environmental_data(data: EnvironmentalSensorDataIn):
     except Exception as e:
         print(f"Error creating environmental data: {e}")
         raise HTTPException(status_code=500, detail=f"Error creating document: {e}")
+
+# Include the routers for actuator and action log    
+app.include_router(actuator_router)
+app.include_router(action_log_router)
