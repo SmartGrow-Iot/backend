@@ -5,41 +5,57 @@ from datetime import datetime
 
 router = APIRouter()
 
-# --- API Endpoints for ActionLog ---
-@router.post("/action-log")
-async def add_action_log(data: ActionLogIn):
-    """
-    Creates a new document in the 'ActionLog' collection.
-    """
+# Map each endpoint to allowed actions
+ALLOWED_ACTIONS = {
+    "water": {"watering"},
+    "light": {"light_on", "light_off"},
+    "fan": {"fan_on", "fan_off"}
+}
+
+# Shared handler logic
+def create_action_log(data: ActionLogIn, category: str):
+    allowed = ALLOWED_ACTIONS.get(category)
+    if allowed is None:
+        raise HTTPException(status_code=500, detail="Server misconfiguration")
+
+    if data.action not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid action for this endpoint. Allowed: {', '.join(allowed)}"
+        )
+
     db = get_firestore_db()
-    try:
-        data_dict = data.model_dump()
-        
-        # Convert ID strings to Firestore document references
-        # Below is commented out as it requires actual Firestore document references
-        # data_dict["plantId"] = db.document(data_dict["plantId"])
-        # data_dict["actuatorId"] = db.document(data_dict["actuatorId"])
+    data_dict = data.model_dump()
 
-        # if data_dict["triggerBy"] != "SYSTEM":
-        #     data_dict["triggerBy"] = db.document(data_dict["triggerBy"])
-            
-        # Create a readable and unique action ID
-        generated_id = db.collection("ActionLog").document().id
-        doc_id = f"action_{generated_id}"
+    generated_id = db.collection("ActionLog").document().id
+    doc_id = f"action_{generated_id}"
 
-        # Save to Firestore
-        db.collection("ActionLog").document(doc_id).set(data_dict)
+    db.collection("ActionLog").document(doc_id).set(data_dict)
 
-        return {"id": doc_id, **data_dict}
-    
-    except HTTPException:
-        raise  # Allow manual HTTP errors to propagate
+    return {"id": doc_id, **data_dict}
 
-    except Exception as e:
-        print(f"Error adding ActionLog: {e}")
-        raise HTTPException(status_code=500, detail="Error saving ActionLog")
+@router.post("/v1/logs/action/water")
+async def log_water_action(data: ActionLogIn):
+    """
+    Creates a new ActionLog document for watering actions.
+    """
+    return create_action_log(data, "water")
 
-@router.get("/action-log/{doc_id}")
+@router.post("/v1/logs/action/light")
+async def log_light_action(data: ActionLogIn):
+    """
+    Creates a new ActionLog document for light actions.
+    """
+    return create_action_log(data, "light")
+
+@router.post("/v1/logs/action/fan")
+async def log_fan_action(data: ActionLogIn):
+    """
+    Creates a new ActionLog document for fan actions.
+    """
+    return create_action_log(data, "fan")
+
+@router.get("/v1/logs/action/{doc_id}")
 async def get_action_log(doc_id: str):
     """
     Retrieves a document by its ID from the 'ActionLog' collection.
@@ -60,3 +76,24 @@ async def get_action_log(doc_id: str):
     except Exception as e:
         print(f"Error getting ActionLog: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving ActionLog {doc_id}: {e}")
+    
+@router.get("/v1/logs/actions")
+async def get_all_action_logs():
+    """
+    Retrieves all documents from the 'ActionLog' collection.
+    """
+    db = get_firestore_db()
+    try:
+        docs = db.collection("ActionLog").stream()
+        results = []
+        for doc in docs:
+            data = doc.to_dict()
+            # Convert Firestore Timestamps to ISO 8601 strings for JSON serialization
+            if 'timestamp' in data and hasattr(data['timestamp'], 'isoformat'):
+                data['timestamp'] = data['timestamp'].isoformat() + 'Z'
+            data['id'] = doc.id
+            results.append(data)
+        return results
+    except Exception as e:
+        print(f"Error fetching all ActionLogs: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving all ActionLogs: {e}")

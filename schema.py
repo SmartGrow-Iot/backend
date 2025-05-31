@@ -43,13 +43,21 @@ class TriggerType(str, Enum):
     manual = "manual"
     auto = "auto"
 
+class ActionType(str, Enum):
+    watering = "watering"
+    light_on = "light_on"
+    light_off = "light_off"
+    fan_on = "fan_on"
+    fan_off = "fan_off"
+
 class ActionLogIn(BaseModel):
     """
     Pydantic model for incoming ActionLog for POST requests.
     """
-    action: str # 'action' is used to denote the type of action performed, 'watering', 'increase_light', etc.
+    action: ActionType
     actuatorId: str
     plantId: str
+    amount: Optional[float] = None  # Used only for 'watering' actions
     trigger: TriggerType # 'trigger' is used to denote the type of action 'manual' or 'auto'
     triggerBy: Optional[str] = None # 'triggerBy' is used to denote who triggered the action, {userId} or 'system'
     timestamp: datetime = Field(default_factory=datetime.utcnow) 
@@ -69,19 +77,20 @@ class ActionLogIn(BaseModel):
     
     # Validation to ensure triggerBy is set correctly based on trigger type
     @model_validator(mode='after')
-    def validate_trigger_logic(cls, values):
-        trigger = values.trigger
-        triggerBy = values.triggerBy
-
-        # If trigger is 'manual', triggerBy (userId) must be provided
-        if trigger == TriggerType.manual and not triggerBy:
+    def validate_trigger_logic(self) -> 'ActionLogIn':
+        if self.trigger == TriggerType.manual and not self.triggerBy:
             raise ValueError("triggerBy is required when trigger is 'manual'")
 
-        # If trigger is 'auto', triggerBy should be set to "SYSTEM"
-        if trigger == TriggerType.auto:
-            values['triggerBy'] = "SYSTEM"
-
-        return values
+        if self.trigger == TriggerType.auto:
+            self.triggerBy = "SYSTEM"
+            
+        # Validate amount for 'watering'
+        if self.action == "watering":
+            if self.amount is None:
+                raise ValueError("amount is required for watering actions.")
+            if self.amount <= 0:
+                raise ValueError("amount must be a positive number.")
+        return self
     
 class ActuatorIn(BaseModel):
     """

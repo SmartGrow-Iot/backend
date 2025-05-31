@@ -4,7 +4,7 @@ from firebase_config import get_firestore_db
 
 router = APIRouter()
 
-@router.post("/actuator")
+@router.post("/v1/actuator")
 async def add_actuator(data: ActuatorIn):
     """
     Creates a new document in the 'Actuator' collection.
@@ -24,7 +24,7 @@ async def add_actuator(data: ActuatorIn):
         print(f"Error adding Actuator: {e}")
         raise HTTPException(status_code=500, detail="Error saving Actuator")
 
-@router.get("/actuator/{doc_id}")
+@router.get("/v1/actuator/{doc_id}")
 async def get_actuator(doc_id: str):
     """
     Retrieves a document by its ID from the 'Actuator' collection.

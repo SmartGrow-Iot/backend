@@ -74,5 +74,5 @@ async def create_environmental_data(data: EnvironmentalSensorDataIn):
         raise HTTPException(status_code=500, detail=f"Error creating document: {e}")
 
 # Include the routers for actuator and action log    
-app.include_router(actuator_router)
-app.include_router(action_log_router)
+app.include_router(actuator_router, prefix='/api')
+app.include_router(action_log_router, prefix='/api')
