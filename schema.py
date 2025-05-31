@@ -1,10 +1,44 @@
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 from datetime import datetime
+from typing import Optional
 from enum import Enum
 
-# --- Pydantic Models for Data Validation ---
+# --- Sensor-specific Enums ---
+class SensorType(str, Enum):
+    TEMPERATURE = "temperature"
+    HUMIDITY = "humidity" 
+    LIGHT = "light"
+    SOIL_MOISTURE = "soil_moisture"
 
+class SensorCreate(BaseModel):
+    """Model for creating a new sensor"""
+    sensorModel: str
+    type: SensorType
+    description: Optional[str] = None
+
+class Sensor(BaseModel):
+    """Model representing a sensor entity"""
+    sensorId: str
+    sensorModel: str
+    type: SensorType
+    description: Optional[str] = None
+
+class SensorLogCreate(BaseModel):
+    """Model for creating sensor log entries"""
+    plantId: str
+    sensorId: str
+    value: float
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class SensorLog(BaseModel):
+    """Model representing a sensor log entry"""
+    logId: str
+    plantId: str
+    sensorId: str
+    value: float
+    timestamp: datetime
+    
 class Automation(BaseModel):
     fanOn: bool = False
     lightOn: bool = False
