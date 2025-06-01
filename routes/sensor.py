@@ -30,8 +30,13 @@ def convert_timestamps(data: dict) -> dict:
     """Convert Firestore timestamps to ISO strings"""
     for key, value in data.items():
         if hasattr(value, 'isoformat'):
-            data[key] = value.isoformat() + 'Z'
+            # Check if it's already a timezone-aware datetime
+            if hasattr(value, 'tzinfo') and value.tzinfo is not None:
+                data[key] = value.isoformat()  # Don't add Z if timezone is already present
+            else:
+                data[key] = value.isoformat() + 'Z'  # Add Z only for naive datetimes
     return data
+
 
 def get_or_create_sensor(plant_id: str, sensor_type: str, user_id: str) -> str:
     """Get existing sensor or create new one for the plant and sensor type"""
@@ -133,12 +138,12 @@ async def submit_environmental_sensor_data(payload: EnvironmentalSensorDataIn):
         timestamp = payload.lastUpdated
         created_logs = []
         
-        # Map sensor readings to sensor types (convert from string to float)
+        # Map sensor readings to sensor types
         sensor_mappings = {
-            "soilMoisture": ("soil_moisture", float(payload.sensors.soilMoisture)),
-            "light": ("light", float(payload.sensors.light)),
-            "temp": ("temperature", float(payload.sensors.temp)),
-            "humidity": ("humidity", float(payload.sensors.humidity))
+            "soilMoisture": ("soil_moisture", payload.sensors.soilMoisture),
+            "light": ("light", payload.sensors.light),
+            "temp": ("temperature", payload.sensors.temp),
+            "humidity": ("humidity", payload.sensors.humidity)
         }
         
         # Create individual log entries for each sensor reading
@@ -185,13 +190,10 @@ async def submit_environmental_sensor_data(payload: EnvironmentalSensorDataIn):
             "timestamp": payload.lastUpdated.isoformat() + 'Z'
         }
         
-    except ValueError as ve:
-        print(f"Value conversion error: {ve}")
-        raise HTTPException(status_code=400, detail=f"Invalid sensor value: {ve}")
     except Exception as e:
         print(f"Error processing environmental sensor data: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing sensor data: {e}")
-
+    
 @router.get("/v1/logs/sensor-data/{plant_id}", response_model=List[SensorLog])
 async def get_sensor_logs_by_plant(
     plant_id: str,
@@ -244,33 +246,3 @@ async def get_sensor_logs_by_plant(
     except Exception as e:
         print(f"Error fetching sensor logs for plant {plant_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching sensor logs: {e}")
-
-@router.get("/v1/logs/sensor-data/{plant_id}")
-async def get_environmental_sensor_records(
-    plant_id: str,
-    limit: int = Query(50, le=500)
-):
-    """Get environmental sensor records for a plant"""
-    try:
-        query = (db.collection("EnvironmentalSensorData")
-                .where("plantId", "==", plant_id)
-                .order_by("lastUpdated", direction="DESCENDING")
-                .limit(limit))
-        
-        docs = query.stream()
-        records = []
-        
-        for doc in docs:
-            record_data = doc.to_dict()
-            record_data = convert_timestamps(record_data)
-            records.append(record_data)
-        
-        return {
-            "plantId": plant_id,
-            "records": records,
-            "count": len(records)
-        }
-        
-    except Exception as e:
-        print(f"Error fetching environmental records for plant {plant_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Error fetching environmental records: {e}")

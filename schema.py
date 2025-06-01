@@ -45,20 +45,20 @@ class Automation(BaseModel):
     waterOn: bool = False
 
 class Sensors(BaseModel):
-    humidity: str
-    light: str
-    soilMoisture: str
-    temp: str
+    humidity: float
+    light: float
+    soilMoisture: float
+    temp: float
 
 class Profile(BaseModel):
-    humidityMax: str
-    humidityMin: str
-    lightMax: str
-    lightMin: str
-    moistureMax: str
-    moistureMin: str
-    tempMax: str
-    tempMin: str
+    humidityMax: float
+    humidityMin: float
+    lightMax: float
+    lightMin: float
+    moistureMax: float
+    moistureMin: float
+    tempMax: float
+    tempMin: float
 
 class EnvironmentalSensorDataIn(BaseModel):
     """
