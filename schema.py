@@ -4,6 +4,24 @@ from datetime import datetime
 from typing import Optional
 from enum import Enum
 
+# --- User Profile Enums ---
+class UserProfile(BaseModel):
+    display_name: str = None
+    email: str = None
+    # phone_number: str = None
+
+class UserRegistration(BaseModel):
+    email: str
+    password: str
+    display_name: Optional[str] = None
+    
+    @field_validator('password')
+    def password_strength(cls, v):
+        if len(v) < 6:
+            raise ValueError('Password must be at least 6 characters')
+        return v
+
+
 # --- Sensor-specific Enums ---
 class SensorType(str, Enum):
     TEMPERATURE = "temperature"

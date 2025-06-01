@@ -15,6 +15,7 @@ db = get_firestore_db()
 app = FastAPI(title="SmartGrow API", version="1.0.0")
 
 # Include the sensor router
+from routes.user import router as user_router
 from routes.sensor import router as sensor_router
 from routes.actuator import router as actuator_router
 from routes.action_log import router as action_log_router
@@ -24,6 +25,7 @@ from routes.action_log import router as action_log_router
 async def read_root():
     return {"message": "Welcome to SmartGrow API!"}
 
+app.include_router(user_router, prefix='/api')
 app.include_router(actuator_router, prefix='/api')
 app.include_router(action_log_router, prefix='/api')
 app.include_router(sensor_router, prefix='/api')
