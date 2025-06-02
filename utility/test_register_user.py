@@ -12,7 +12,9 @@ import json
 import os
 
 # Initialize Firebase
-cred_path = './spq-smartgrow-mock-firebase-adminsdk-fbsvc-0e9b2f5599.json'
+cred_path = os.getenv('FIREBASE_CREDENTIAL_PATH')
+if not cred_path or not os.path.exists(cred_path):
+    raise FileNotFoundError("Firebase credential file not found. Set the FIREBASE_CREDENTIAL_PATH environment variable.")
 cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred)
 
