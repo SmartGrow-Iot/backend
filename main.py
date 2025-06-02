@@ -19,6 +19,9 @@ from routes.user import router as user_router
 from routes.sensor import router as sensor_router
 from routes.actuator import router as actuator_router
 from routes.action_log import router as action_log_router
+from routes.plants import router as plant_router 
+
+
 
 # --- Root Endpoint ---
 @app.get("/")
@@ -29,3 +32,4 @@ app.include_router(user_router, prefix='/api')
 app.include_router(actuator_router, prefix='/api')
 app.include_router(action_log_router, prefix='/api')
 app.include_router(sensor_router, prefix='/api')
+app.include_router(plant_router, prefix='/api')
