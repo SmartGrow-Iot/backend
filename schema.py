@@ -137,7 +137,7 @@ class ActionLogIn(BaseModel):
             self.triggerBy = "SYSTEM"
             
         # Validate amount for 'watering'
-        if self.action == "watering":
+        if self.action == ActionType.watering:
             if self.amount is None:
                 raise ValueError("amount is required for watering actions.")
             if self.amount <= 0:
@@ -170,3 +170,52 @@ class ActuatorIn(BaseModel):
         if not v:
             raise ValueError("Missing 'type'. Please provide a type value.")
         return v
+    
+    # ---- Plant Management Models ----
+class ThresholdRange(BaseModel):
+    """Nested model for min/max threshold values"""
+    min: float
+    max: float
+
+    @model_validator(mode='after')
+    def validate_range(self) -> 'ThresholdRange':
+        if self.min >= self.max:
+            raise ValueError("min must be less than max")
+        return self
+
+class PlantThresholds(BaseModel):
+    """Container for all plant thresholds"""
+    moisture: ThresholdRange
+    temperature: ThresholdRange
+    light: ThresholdRange
+
+class PlantCreate(BaseModel):
+    """Model for creating a new plant"""
+    name: str
+    userId: str
+    thresholds: PlantThresholds
+    description: Optional[str] = None
+
+    @field_validator('name')
+    def validate_name(cls, v):
+        if not v.strip():
+            raise ValueError("Plant name cannot be empty")
+        return v.strip()
+
+class PlantUpdate(BaseModel):
+    """Model for updating plant details (partial updates allowed)"""
+    name: Optional[str] = None
+    thresholds: Optional[PlantThresholds] = None
+    description: Optional[str] = None
+
+    @model_validator(mode='after')
+    def validate_at_least_one_field(cls, values):
+        if not any([values.name, values.thresholds, values.description]):
+            raise ValueError("At least one field must be provided for update")
+        return values
+
+class PlantOut(PlantCreate):
+    """Complete plant model with system-generated fields"""
+    plantId: str
+    createdAt: datetime
+    updatedAt: datetime

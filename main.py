@@ -20,6 +20,9 @@ from routes.sensor import router as sensor_router
 from routes.actuator import router as actuator_router
 from routes.action_log import router as action_log_router
 from routes.device_control import router as device_control_router
+from routes.plants import router as plant_router 
+
+
 
 # --- Root Endpoint ---
 @app.get("/")
@@ -31,3 +34,4 @@ app.include_router(actuator_router, prefix='/api')
 app.include_router(action_log_router, prefix='/api')
 app.include_router(sensor_router, prefix='/api')
 app.include_router(device_control_router, prefix='/api')
+app.include_router(plant_router, prefix='/api')

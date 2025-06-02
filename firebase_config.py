@@ -20,6 +20,10 @@ db = None
 def initialize_firebase_admin():
     global db
 
+    if os.getenv("TEST_MODE", "false").lower() == "true":
+        db = None
+        return
+
     if not firebase_admin._apps:
         # Try JSON credentials first (for cloud deployment)
         if FIREBASE_CREDENTIALS_JSON:
