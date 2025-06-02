@@ -2,12 +2,12 @@ from fastapi import APIRouter, HTTPException
 from firebase_config import get_firestore_db
 from datetime import datetime
 from pydantic import BaseModel
-
+from schema import PlantCreate
 router = APIRouter()
 db = get_firestore_db()  
 
 @router.post("/v1/plants")
-async def create_plant(plant: PlantIn):
+async def create_plant(plant: PlantCreate):
     """Creates a new plant document"""
     try:
         plant_id = f"plant_{db.collection('Plants').document().id}"
