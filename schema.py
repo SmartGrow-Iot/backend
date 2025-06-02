@@ -137,7 +137,7 @@ class ActionLogIn(BaseModel):
             self.triggerBy = "SYSTEM"
             
         # Validate amount for 'watering'
-        if self.action == "watering":
+        if self.action == ActionType.watering:
             if self.amount is None:
                 raise ValueError("amount is required for watering actions.")
             if self.amount <= 0:
