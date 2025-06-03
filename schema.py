@@ -28,6 +28,7 @@ class SensorType(str, Enum):
     HUMIDITY = "humidity" 
     LIGHT = "light"
     SOIL_MOISTURE = "soil_moisture"
+    AIR_QUALITY = "air_quality"
 
 class SensorCreate(BaseModel):
     """Model for creating a new sensor"""
@@ -67,6 +68,7 @@ class Sensors(BaseModel):
     light: float
     soilMoisture: float
     temp: float
+    airQuality: float
 
 class Profile(BaseModel):
     humidityMax: float

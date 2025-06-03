@@ -143,7 +143,8 @@ async def submit_environmental_sensor_data(payload: EnvironmentalSensorDataIn):
             "soilMoisture": ("soil_moisture", payload.sensors.soilMoisture),
             "light": ("light", payload.sensors.light),
             "temp": ("temperature", payload.sensors.temp),
-            "humidity": ("humidity", payload.sensors.humidity)
+            "humidity": ("humidity", payload.sensors.humidity),
+            "airQuality": ("air_quality", payload.sensors.airQuality)
         }
         
         # Create individual log entries for each sensor reading
