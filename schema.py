@@ -217,7 +217,11 @@ class PlantUpdate(BaseModel):
         return values
 
 class PlantOut(PlantCreate):
-    """Complete plant model with system-generated fields"""
     plantId: str
     createdAt: datetime
     updatedAt: datetime
+
+class PlantListResponse(BaseModel):
+    success: bool = True
+    count: int
+    plants: List[PlantOut]
