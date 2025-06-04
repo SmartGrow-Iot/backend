@@ -25,73 +25,99 @@ class UserRegistration(BaseModel):
 # --- Sensor-specific Enums ---
 class SensorType(str, Enum):
     TEMPERATURE = "temperature"
-    HUMIDITY = "humidity" 
+    HUMIDITY = "humidity"
     LIGHT = "light"
     SOIL_MOISTURE = "soil_moisture"
     AIR_QUALITY = "air_quality"
 
 class SensorCreate(BaseModel):
     """Model for creating a new sensor"""
-    sensorModel: str
-    type: SensorType
-    description: Optional[str] = None
+    sensorModel: str = Field(..., example="DHT22")
+    type: SensorType = Field(..., example=SensorType.TEMPERATURE)
+    description: Optional[str] = Field(None, example="Temperature sensor for greenhouse monitoring")
 
 class Sensor(BaseModel):
     """Model representing a sensor entity"""
-    sensorId: str
-    sensorModel: str
-    type: SensorType
-    description: Optional[str] = None
+    sensorId: str = Field(..., example="sensor_12345")
+    sensorModel: str = Field(..., example="DHT22")
+    type: SensorType = Field(..., example=SensorType.TEMPERATURE)
+    description: Optional[str] = Field(None, example="Temperature sensor for greenhouse monitoring")
 
 class SensorLogCreate(BaseModel):
     """Model for creating sensor log entries"""
-    plantId: str
-    sensorId: str
-    value: float
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    plantId: str = Field(..., example="plant_001")
+    sensorId: str = Field(..., example="sensor_12345")
+    value: float = Field(..., example=23.5)
+    timestamp: datetime = Field(default_factory=datetime.utcnow, example=datetime.utcnow().isoformat() + "Z")
 
 class SensorLog(BaseModel):
     """Model representing a sensor log entry"""
-    logId: str
-    plantId: str
-    sensorId: str
-    value: float
-    timestamp: datetime
-    
+    logId: str = Field(..., example="log_67890")
+    plantId: str = Field(..., example="plant_001")
+    sensorId: str = Field(..., example="sensor_12345")
+    value: float = Field(..., example=23.5)
+    timestamp: datetime = Field(..., example=datetime.utcnow().isoformat() + "Z")
+
 class Automation(BaseModel):
-    fanOn: bool = False
-    lightOn: bool = False
-    waterOn: bool = False
+    fanOn: bool = Field(False, example=True)
+    lightOn: bool = Field(False, example=False)
+    waterOn: bool = Field(False, example=True)
 
 class Sensors(BaseModel):
-    humidity: float
-    light: float
-    soilMoisture: float
-    temp: float
-    airQuality: float
+    humidity: float = Field(..., example=65.2)
+    light: float = Field(..., example=1200.0)
+    soilMoisture: float = Field(..., example=45.8)
+    temp: float = Field(..., example=24.3)
+    airQuality: float = Field(..., example=85.5)
 
 class Profile(BaseModel):
-    humidityMax: float
-    humidityMin: float
-    lightMax: float
-    lightMin: float
-    moistureMax: float
-    moistureMin: float
-    tempMax: float
-    tempMin: float
+    humidityMax: float = Field(..., example=70.0)
+    humidityMin: float = Field(..., example=40.0)
+    lightMax: float = Field(..., example=1500.0)
+    lightMin: float = Field(..., example=800.0)
+    moistureMax: float = Field(..., example=60.0)
+    moistureMin: float = Field(..., example=30.0)
+    tempMax: float = Field(..., example=28.0)
+    tempMin: float = Field(..., example=18.0)
 
 class EnvironmentalSensorDataIn(BaseModel):
     """
     Pydantic model for incoming EnvironmentalSensorData for POST requests.
     Using 'In' suffix to denote it's for input validation.
     """
-    automation: Automation
-    lastUpdated: datetime = Field(default_factory=datetime.utcnow) # Automatically set UTC time
-    plantId: str
-    profile: Profile
-    sensorRecordId: datetime = Field(default_factory=datetime.utcnow) # Automatically set UTC time
-    sensors: Sensors
-    userId: str
+    automation: Automation = Field(..., example={
+        "fanOn": True,
+        "lightOn": False,
+        "waterOn": True
+    })
+    lastUpdated: datetime = Field(
+        default_factory=datetime.utcnow, 
+        example=datetime.utcnow().isoformat() + "Z"
+    )
+    plantId: str = Field(..., example="plant_greenhouse_001")
+    profile: Profile = Field(..., example={
+        "humidityMax": 70.0,
+        "humidityMin": 40.0,
+        "lightMax": 1500.0,
+        "lightMin": 800.0,
+        "moistureMax": 60.0,
+        "moistureMin": 30.0,
+        "tempMax": 28.0,
+        "tempMin": 18.0
+    })
+    sensorRecordId: datetime = Field(
+        default_factory=datetime.utcnow, 
+        example=datetime.utcnow().isoformat() + "Z"
+    )
+    sensors: Sensors = Field(..., example={
+        "humidity": 65.2,
+        "light": 1200.0,
+        "soilMoisture": 45.8,
+        "temp": 24.3,
+        "airQuality": 85.5
+    })
+    userId: str = Field(..., example="user_12345")
+
 
 class TriggerType(str, Enum):
     manual = "manual"
