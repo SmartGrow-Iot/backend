@@ -47,7 +47,19 @@ async def update_user_profile(profile: UserProfile, user = Depends(get_current_u
             email=profile.email,
             # phone_number=profile.phone_number,
         )
-        return {"message": "Profile updated successfully"}
+        
+        # Also update in Firestore
+        db = get_firestore_db()
+        user_doc_id = f"user_{user['uid']}"
+        
+        # Update the Firestore document
+        db.collection("User").document(user_doc_id).update({
+            "name": profile.display_name,
+            "email": profile.email,
+            "updatedAt": datetime.utcnow()
+        })
+        
+        return {"message": "Profile updated successfully in both Auth and Firestore"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating profile: {e}")
 
