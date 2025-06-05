@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from firebase_config import get_firestore_db
 from datetime import datetime
 from pydantic import BaseModel
-from schema import PlantCreate
+from schema import PlantCreate, PlantListResponse
 router = APIRouter()
 db = get_firestore_db()  
 
