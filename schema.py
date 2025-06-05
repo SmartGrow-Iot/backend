@@ -6,14 +6,14 @@ from enum import Enum
 
 # --- User Profile Enums ---
 class UserProfile(BaseModel):
-    display_name: str = None
-    email: str = None
+    display_name: str = Field(None, example="John Doe")
+    email: str = Field(None, example="johndoe@example.com")
     # phone_number: str = None
 
 class UserRegistration(BaseModel):
-    email: str
-    password: str
-    display_name: Optional[str] = None
+    email: str = Field(..., example="newuser@example.com")
+    password: str = Field(..., example="Pass123$")
+    display_name: Optional[str] = Field(None, example="Jane Smith")
     
     @field_validator('password')
     def password_strength(cls, v):

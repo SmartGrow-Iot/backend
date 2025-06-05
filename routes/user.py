@@ -4,6 +4,8 @@ from auth import get_current_user
 from pydantic import BaseModel, EmailStr, validator
 from typing import Optional
 from schema import UserProfile, UserRegistration
+from firebase_config import get_firestore_db
+from datetime import datetime
 
 router = APIRouter(
     tags=["users"],
@@ -52,7 +54,7 @@ async def update_user_profile(profile: UserProfile, user = Depends(get_current_u
 # Register a new user 
 @router.post("/v1/auth/register")
 async def register_user(user_data: UserRegistration):
-    """Register a new user in Firebase Authentication"""
+    """Register a new user in Firebase Authentication and Firestore"""
     try:
         # Create the user in Firebase Auth
         user_record = auth.create_user(
@@ -61,11 +63,27 @@ async def register_user(user_data: UserRegistration):
             display_name=user_data.display_name
         )
         
+        # Get Firestore DB
+        db = get_firestore_db()
+        
+        # Create document ID with user_ prefix
+        user_doc_id = f"user_{user_record.uid}"
+        
+        # Create user document in Firestore
+        user_doc = {
+            "userId": user_doc_id,
+            "name": user_data.display_name,
+            "createdAt": datetime.utcnow()
+        }
+        
+        # Add to "User" collection with user_{uid} as document ID
+        db.collection("User").document(user_doc_id).set(user_doc)
+        
         return {
             "message": "User created successfully",
             "uid": user_record.uid,
             "email": user_record.email,
-            "display_name": user_record.display_name
+            "display_name": user_data.display_name
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
