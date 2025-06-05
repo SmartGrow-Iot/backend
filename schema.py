@@ -134,13 +134,48 @@ class ActionLogIn(BaseModel):
     """
     Pydantic model for incoming ActionLog for POST requests.
     """
-    action: ActionType
-    actuatorId: str
-    plantId: str
-    amount: Optional[float] = None  # Used only for 'watering' actions
-    trigger: TriggerType # 'trigger' is used to denote the type of action 'manual' or 'auto'
-    triggerBy: Optional[str] = None # 'triggerBy' is used to denote who triggered the action, {userId} or 'system'
-    timestamp: datetime = Field(default_factory=datetime.utcnow) 
+    action: ActionType = Field(
+        ...,
+        title="Action Type",
+        description="The type of action performed by the actuator.",
+        examples=["watering"]
+    )
+    actuatorId: str = Field(
+        ...,
+        title="Actuator ID",
+        description="The unique identifier of the actuator that performed the action.",
+        examples=["actuator-123"]
+    )
+    plantId: str = Field(
+        ...,
+        title="Plant ID",
+        description="The identifier of the plant associated with the action.",
+        examples=["plant-456"]
+    )
+    amount: Optional[float] = Field(
+        None,
+        title="Amount",
+        description="The ml of water. Only applicable for watering.",
+        examples=[500.0]
+    )
+    trigger: TriggerType = Field(
+        ...,
+        title="Trigger Type",
+        description="Indicates whether the action was triggered manually or automatically.",
+        examples=["manual"]
+    )
+    triggerBy: Optional[str] = Field(
+        None,
+        title="Triggered By",
+        description="Identifier of the user that triggered the action. Will be set to 'SYSTEM' for automatic triggers.",
+        examples=["user-789"]
+    )
+    timestamp: datetime = Field(
+        default_factory=datetime.utcnow,
+        title="Timestamp",
+        description="The date and time when the action occurred.",
+        examples=["2025-06-05T14:30:00Z"]
+    )
     
     # Validation to ensure plantId and actuatorId are provided
     @field_validator('plantId')
@@ -176,10 +211,30 @@ class ActuatorIn(BaseModel):
     """
     Pydantic model for incoming Actuator data for POST requests.
     """
-    actuatorModel : str
-    description : str
-    type : str
-    createdAt: datetime = Field(default_factory=datetime.utcnow)  # Automatically set UTC time
+    actuatorModel: str = Field(
+        ...,
+        title="Actuator Model",
+        description="The model of the actuator being used",
+        examples=["SG-WP-1000"],
+    )   
+    description: str = Field(
+        ...,
+        title="Description",
+        description="A brief description of the actuator's function or features.",
+        examples=["High-pressure water pump for irrigation"]
+    )
+    type: str = Field(
+        ...,
+        title="Actuator Type",
+        description="The category or type of the actuator (e.g., watering, lighting, fan).",
+        examples=["watering"]
+    )
+    createdAt: datetime = Field(
+        default_factory=datetime.utcnow,
+        title="Creation Timestamp",
+        description="Timestamp indicating when the actuator was created.",
+        examples=["2025-06-05T10:00:00Z"]
+    )  # Automatically set UTC time
     
     @field_validator('actuatorModel')
     def check_actuatorModel(cls, v):
