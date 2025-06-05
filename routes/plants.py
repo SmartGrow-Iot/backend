@@ -58,3 +58,42 @@ async def update_thresholds(plant_id: str, thresholds: dict):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating thresholds: {str(e)}")
+    
+@router.get("/v1/plants/user/{user_id}")
+async def get_all_plants(user_id: str):
+    """
+    Retrieve all plants for a specific user
+    - Returns: List of plants with pagination info
+    """
+    try:
+        # Query plants by userId
+        plants_ref = db.collection("Plants").where("userId", "==", user_id)
+        docs = plants_ref.stream()
+        
+        plants = []
+        for doc in docs:
+            plant_data = doc.to_dict()
+            # Convert Firestore timestamps
+            for field in ['createdAt', 'updatedAt']:
+                if field in plant_data:
+                    plant_data[field] = plant_data[field].isoformat() + 'Z'
+            plants.append(plant_data)
+        
+        if not plants:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No plants found for user {user_id}"
+            )
+            
+        return PlantListResponse(
+            count=len(plants),
+            plants=plants
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving plants: {str(e)}"
+        )
