@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 from datetime import datetime
 from typing import Optional
@@ -255,6 +255,21 @@ class ActuatorIn(BaseModel):
         return v
     
     # ---- Plant Management Models ----
+    # ---- Enums ----
+class PlantStatus(str, Enum):
+    OPTIMAL = "optimal"
+    CRITICAL = "critical"
+
+VALID_ZONES = ["zone1", "zone2", "zone3", "zone4"]
+VALID_MOISTURE_PINS = [34, 35, 36, 39]
+
+class PlantType(str, Enum):
+    VEGETABLE = "vegetable"
+    HERB = "herb"
+    FRUIT = "fruit"
+    FLOWER = "flower"
+    SUCCULENT = "succulent"
+    
 class ThresholdRange(BaseModel):
     """Nested model for min/max threshold values"""
     min: float
@@ -273,11 +288,15 @@ class PlantThresholds(BaseModel):
     light: ThresholdRange
 
 class PlantCreate(BaseModel):
-    """Model for creating a new plant"""
     name: str
     userId: str
+    zone: Literal["zone1", "zone2", "zone3", "zone4"]
+    moisturePin: Literal[34, 35, 36, 39]
     thresholds: PlantThresholds
+    type: PlantType
     description: Optional[str] = None
+    image: Optional[str] = None
+    growthTime: Optional[int] = 30
 
     @field_validator('name')
     def validate_name(cls, v):
@@ -286,19 +305,31 @@ class PlantCreate(BaseModel):
         return v.strip()
 
 class PlantUpdate(BaseModel):
-    """Model for updating plant details (partial updates allowed)"""
     name: Optional[str] = None
     thresholds: Optional[PlantThresholds] = None
     description: Optional[str] = None
+    moisturePin: Optional[Literal[34, 35, 36, 39]] = None
+    status: Optional[PlantStatus] = None
+    waterLevel: Optional[float] = None
+    lightLevel: Optional[float] = None
+    temperature: Optional[float] = None
+    humidity: Optional[float] = None
 
     @model_validator(mode='after')
-    def validate_at_least_one_field(cls, values):
-        if not any([values.name, values.thresholds, values.description]):
+    def validate_at_least_one_field(cls, self):
+        if not any([self.name, self.thresholds, self.description, 
+                   self.moisturePin, self.status, self.waterLevel,
+                   self.lightLevel, self.temperature, self.humidity]):
             raise ValueError("At least one field must be provided for update")
-        return values
+        return self
 
 class PlantOut(PlantCreate):
     plantId: str
+    status: PlantStatus = PlantStatus.OPTIMAL
+    waterLevel: float = 50.0
+    lightLevel: float = 50.0
+    temperature: float = 25.0
+    humidity: float = 50.0
     createdAt: datetime
     updatedAt: datetime
 
@@ -306,3 +337,19 @@ class PlantListResponse(BaseModel):
     success: bool = True
     count: int
     plants: List[PlantOut]
+
+class ZoneInfoResponse(BaseModel):
+    zone: str
+    plantCount: int
+    availablePins: List[int]
+
+class ZoneBase(BaseModel):
+    zoneId: Literal["zone1", "zone2", "zone3", "zone4"]
+    userId: str
+    plantIds: List[str] = Field(max_items=4)
+    availablePins: List[Literal[34, 35, 36, 39]]
+    lastUpdated: datetime
+
+class ZoneCreate(BaseModel):
+    zoneId: Literal["zone1", "zone2", "zone3", "zone4"]
+    userId: str
