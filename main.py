@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from datetime import datetime        
 from dotenv import load_dotenv
-from schema import EnvironmentalSensorDataIn, Automation, Sensors, Profile
 
 # Import Firebase initialization from firebase_config.py
 from firebase_config import initialize_firebase_admin, get_firestore_db

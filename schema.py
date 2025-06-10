@@ -27,43 +27,54 @@ class SensorType(str, Enum):
     TEMPERATURE = "temperature"
     HUMIDITY = "humidity"
     LIGHT = "light"
-    SOIL_MOISTURE = "soil_moisture"
-    AIR_QUALITY = "air_quality"
+    SOIL_MOISTURE = "soilMoisture"
+    AIR_QUALITY = "airQuality"
 
-class SensorCreate(BaseModel):
+# --- Base Models ---
+class SensorBase(BaseModel):
+    """Base sensor model with common fields"""
+    sensorModel: str = Field(..., example="DHT22")
+    type: SensorType = Field(..., example=SensorType.TEMPERATURE)
+    description: Optional[str] = Field(None, example="Temperature sensor for greenhouse monitoring")
+    esp32Id: str = Field(..., example="ESP32_BOARD_001")
+    pinId: int = Field(..., example=34, description="GPIO pin number on the ESP32")
+
+# --- Request Models ---
+class SensorCreateRequest(SensorBase):
     """Model for creating a new sensor"""
-    sensorModel: str = Field(..., example="DHT22")
-    type: SensorType = Field(..., example=SensorType.TEMPERATURE)
-    description: Optional[str] = Field(None, example="Temperature sensor for greenhouse monitoring")
+    plantIds: List[str] = Field(default_factory=list, example=["plant_001", "plant_002"])
 
-class Sensor(BaseModel):
-    """Model representing a sensor entity"""
-    sensorId: str = Field(..., example="sensor_12345")
-    sensorModel: str = Field(..., example="DHT22")
-    type: SensorType = Field(..., example=SensorType.TEMPERATURE)
-    description: Optional[str] = Field(None, example="Temperature sensor for greenhouse monitoring")
-
-class SensorLogCreate(BaseModel):
+class SensorLogCreateRequest(BaseModel):
     """Model for creating sensor log entries"""
-    plantId: str = Field(..., example="plant_001")
     sensorId: str = Field(..., example="sensor_12345")
+    plantId: str = Field(..., example="plant_001")
     value: float = Field(..., example=23.5)
-    timestamp: datetime = Field(default_factory=datetime.utcnow, example=datetime.utcnow().isoformat() + "Z")
+    timestamp: Optional[datetime] = Field(default_factory=datetime.utcnow, example=datetime.utcnow().isoformat() + "Z")
 
-class SensorLog(BaseModel):
+# --- Response Models ---
+class SensorResponse(SensorBase):
+    """Complete sensor model for API responses"""
+    sensorId: str = Field(..., example="sensor_12345")
+    plantIds: Optional[List[str]] = Field(default_factory=list, example=["plant_001", "plant_002"])
+    userId: Optional[str] = Field(None, example="user_123")
+    createdAt: datetime = Field(..., example=datetime.utcnow().isoformat() + "Z")
+    lastUpdated: datetime = Field(..., example=datetime.utcnow().isoformat() + "Z")
+
+class SensorLogResponse(BaseModel):
     """Model representing a sensor log entry"""
     logId: str = Field(..., example="log_67890")
-    plantId: str = Field(..., example="plant_001")
     sensorId: str = Field(..., example="sensor_12345")
+    plantId: str = Field(..., example="plant_001")
     value: float = Field(..., example=23.5)
     timestamp: datetime = Field(..., example=datetime.utcnow().isoformat() + "Z")
 
+# --- Environmental Data Models ---
 class Automation(BaseModel):
     fanOn: bool = Field(False, example=True)
     lightOn: bool = Field(False, example=False)
     waterOn: bool = Field(False, example=True)
 
-class Sensors(BaseModel):
+class SensorReadings(BaseModel):
     humidity: float = Field(..., example=65.2)
     light: float = Field(..., example=1200.0)
     soilMoisture: float = Field(..., example=45.8)
@@ -80,11 +91,8 @@ class Profile(BaseModel):
     tempMax: float = Field(..., example=28.0)
     tempMin: float = Field(..., example=18.0)
 
-class EnvironmentalSensorDataIn(BaseModel):
-    """
-    Pydantic model for incoming EnvironmentalSensorData for POST requests.
-    Using 'In' suffix to denote it's for input validation.
-    """
+class EnvironmentalDataRequest(BaseModel):
+    """Model for bulk environmental sensor data submission"""
     automation: Automation = Field(..., example={
         "fanOn": True,
         "lightOn": False,
@@ -109,14 +117,14 @@ class EnvironmentalSensorDataIn(BaseModel):
         default_factory=datetime.utcnow, 
         example=datetime.utcnow().isoformat() + "Z"
     )
-    sensors: Sensors = Field(..., example={
+    sensors: SensorReadings = Field(..., example={
         "humidity": 65.2,
         "light": 1200.0,
         "soilMoisture": 45.8,
         "temp": 24.3,
         "airQuality": 85.5
     })
-    userId: str = Field(..., example="user_12345")
+    userId: Optional[str] = Field(None, example="user_12345")
 
 
 class TriggerType(str, Enum):
