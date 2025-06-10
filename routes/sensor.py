@@ -318,7 +318,7 @@ async def get_sensor_logs(
         print(f"Error fetching sensor logs for {error_context}: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching sensor logs: {e}")
 
-@router.post("/v1/environmental-data", response_model=dict)
+@router.post("/v1/sensor-data", response_model=dict)
 async def submit_environmental_data(environmentalRequest: EnvironmentalDataRequest):
     """Submit environmental sensor data - requires pre-registered sensors"""
     try:
