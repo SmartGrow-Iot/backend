@@ -260,7 +260,7 @@ async def _get_filtered_sensor_logs(
     
     return filtered_logs
 
-@router.get("/v1/sensor-logs", response_model=List[SensorLogResponse])
+@router.get("/v1/logs/sensors", response_model=List[SensorLogResponse])
 async def get_sensor_logs(
     sensorId: Optional[str] = Query(None, description="Filter by specific sensor ID"),
     plantId: Optional[str] = Query(None, description="Filter by specific plant ID"),
