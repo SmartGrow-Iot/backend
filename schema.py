@@ -8,17 +8,26 @@ from enum import Enum
 class UserProfile(BaseModel):
     display_name: str = Field(None, example="John Doe")
     email: str = Field(None, example="johndoe@example.com")
+    group: Optional[int] = Field(None, example=5, description="User group number (1-16)")
     # phone_number: str = None
+    
 
 class UserRegistration(BaseModel):
     email: str = Field(..., example="newuser@example.com")
     password: str = Field(..., example="Pass123$")
     display_name: Optional[str] = Field(None, example="Jane Smith")
+    group: int = Field(..., example=5, description="User group number (1-16)")
     
     @field_validator('password')
     def password_strength(cls, v):
         if len(v) < 6:
             raise ValueError('Password must be at least 6 characters')
+        return v
+    
+    @field_validator('group')
+    def validate_group(cls, v):
+        if v < 1 or v > 16:
+            raise ValueError('Group must be between 1 and 16')
         return v
 
 
