@@ -85,6 +85,7 @@ async def register_user(user_data: UserRegistration):
         user_doc = {
             "userId": user_doc_id,
             "name": user_data.display_name,
+            "group": user_data.group,
             "createdAt": datetime.utcnow()
         }
         
@@ -95,7 +96,8 @@ async def register_user(user_data: UserRegistration):
             "message": "User created successfully",
             "uid": user_record.uid,
             "email": user_record.email,
-            "display_name": user_data.display_name
+            "display_name": user_data.display_name,
+            "group": user_data.group
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error creating user: {str(e)}")
