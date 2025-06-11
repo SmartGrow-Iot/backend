@@ -147,6 +147,8 @@ class ActionType(str, Enum):
     fan_on = "fan_on"
     fan_off = "fan_off"
 
+VALID_ACTUATOR_TYPES = ["watering", "light", "fan"]
+
 class ActionLogIn(BaseModel):
     """
     Pydantic model for incoming ActionLog for POST requests.
@@ -240,11 +242,17 @@ class ActuatorIn(BaseModel):
         description="A brief description of the actuator's function or features.",
         examples=["High-pressure water pump for irrigation"]
     )
-    type: str = Field(
+    type: Literal["watering", "light", "fan"] = Field(
         ...,
         title="Actuator Type",
-        description="The category or type of the actuator (e.g., watering, lighting, fan).",
+        description="The type of the actuator. Can only be 'watering', 'light', or 'fan'.",
         examples=["watering"]
+    )
+    zone: Literal["zone1", "zone2", "zone3", "zone4"] = Field(
+        ...,
+        title="Zone",
+        description="The zone where the actuator is installed.",
+        examples=["zone1"]
     )
     createdAt: datetime = Field(
         default_factory=datetime.utcnow,
