@@ -81,6 +81,9 @@ async def get_actuators_by_zone(zone: str, type: str = Query(None, description="
         print(f"Error retrieving actuators by zone: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving actuators: {str(e)}")
 
+""""
+ONLY FOR TESTING PURPOSE, actual logic will change
+"""
 @router.post("/v1/actuator/{doc_id}/trigger")
 async def trigger_actuator(doc_id: str, command: str = "on"):
     """

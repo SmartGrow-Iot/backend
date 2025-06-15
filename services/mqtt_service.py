@@ -29,7 +29,7 @@ def connect_mqtt():
     client.loop_start()
 
 def publish_actuator_command(zone: str, action: str = "on"):
-    topic = f"{ADA_USERNAME}/feeds/{zone}.welcome-feed"
+    topic = f"{ADA_USERNAME}/feeds/{zone}-welcome-feed"
     # topic = f"{ADA_USERNAME}/feeds/smartgrow.{actuator_type}.{zone}"
     result = client.publish(topic, action)
     if result.rc == 0:
