@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from datetime import datetime        
 from dotenv import load_dotenv
+from services.mqtt_service import connect_mqtt
 
 # Import Firebase initialization from firebase_config.py
 from firebase_config import initialize_firebase_admin, get_firestore_db
@@ -13,13 +14,21 @@ db = get_firestore_db()
 
 app = FastAPI(title="SmartGrow API", version="1.0.0")
 
+# Startup MQTT connection
+@app.on_event("startup")
+async def startup_event():
+    print("Initializing MQTT connection...")
+    connect_mqtt()
+
+
+
 # Include the sensor router
 from routes.user import router as user_router
 from routes.sensor import router as sensor_router
 from routes.actuator import router as actuator_router
 from routes.action_log import router as action_log_router
 from routes.device_control import router as device_control_router
-from routes.plants import router as plant_router 
+from routes.plants import router as plant_router
 
 
 
