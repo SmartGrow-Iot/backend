@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from datetime import datetime        
 from dotenv import load_dotenv
@@ -12,15 +14,13 @@ initialize_firebase_admin()
 # Get the initialized Firestore DB client
 db = get_firestore_db()
 
-app = FastAPI(title="SmartGrow API", version="1.0.0")
-
-# Startup MQTT connection
-@app.on_event("startup")
-async def startup_event():
-    print("Initializing MQTT connection...")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Code to run on startup
     connect_mqtt()
+    yield
 
-
+app = FastAPI(title="SmartGrow API", version="1.0.0", lifespan=lifespan)
 
 # Include the sensor router
 from routes.user import router as user_router
