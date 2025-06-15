@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from datetime import datetime        
 from dotenv import load_dotenv
-from services.mqtt_service import connect_mqtt
+from services.mqtt_service import mqtt_client
 
 # Import Firebase initialization from firebase_config.py
 from firebase_config import initialize_firebase_admin, get_firestore_db
@@ -17,8 +17,9 @@ db = get_firestore_db()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Code to run on startup
-    connect_mqtt()
+    mqtt_client.connect()
     yield
+    mqtt_client.disconnect()
 
 app = FastAPI(title="SmartGrow API", version="1.0.0", lifespan=lifespan)
 

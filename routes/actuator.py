@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from schema import VALID_ACTUATOR_TYPES, VALID_ZONES, ActuatorIn
 from firebase_config import get_firestore_db
-from services.mqtt_service import publish_actuator_command
+from services.mqtt_service import mqtt_client
 
 router = APIRouter()
 
@@ -98,7 +98,7 @@ async def trigger_actuator(doc_id: str, command: str = "on"):
         actuator = doc.to_dict()
 
         # Publish to MQTT
-        publish_actuator_command(
+        mqtt_client.publish_actuator_command(
             zone=actuator["zone"],
             action=command
         )
