@@ -1,3 +1,4 @@
+import json
 import os
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
@@ -48,12 +49,14 @@ class MQTTClient:
         if not self.client.is_connected():
             logger.info("MQTT Client is not connected. Cannot publish.")
             return
-
-        topic = f"{ADA_USERNAME}/feeds/{zone}-welcome-feed"
+        command = {"pump": "ON", "light": "OFF", "fan": "ON"}
+        payload = json.dumps(command)
+        topic = f"{ADA_USERNAME}/feeds/group-1.actuator-status"
+        # topic = f"{ADA_USERNAME}/feeds/{zone}-welcome-feed"
         # topic = f"{ADA_USERNAME}/feeds/smartgrow.{actuator_type}.{zone}"
-        result = self.client.publish(topic, action)
+        result = self.client.publish(topic, payload)
         if result.rc == 0:
-            logger.info(f"Sent `{action}` to `{topic}`")
+            logger.info(f"Sent `{payload}` to `{topic}`")
         else:
             logger.info(f"Failed to publish to `{topic}`")
 
