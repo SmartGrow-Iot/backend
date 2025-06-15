@@ -16,7 +16,7 @@ ADA_KEY = os.getenv("ADA_KEY")
 
 class MQTTClient:
     def __init__(self):
-        self.client = mqtt.Client(client_id="")
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="")
         self.client.username_pw_set(ADA_USERNAME, ADA_KEY)
         self.client.on_connect = self._on_connect
         self.client.on_disconnect = self._on_disconnect
