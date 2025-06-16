@@ -57,7 +57,7 @@ class MQTTClient:
             return
 
         action_to_key_map = {
-            "watering": "pump",
+            "water": "pump",
             "light": "light",
             "fan": "fan"
         }
