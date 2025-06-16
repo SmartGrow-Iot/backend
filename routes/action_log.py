@@ -3,6 +3,8 @@ from schema import ActionLogIn
 from firebase_config import get_firestore_db
 from datetime import datetime
 
+from services.mqtt_service import mqtt_client
+
 router = APIRouter()
 
 # Map each endpoint to allowed actions
@@ -31,6 +33,23 @@ def create_action_log(data: ActionLogIn, category: str):
     doc_id = f"action_{generated_id}"
 
     db.collection("ActionLog").document(doc_id).set(data_dict)
+
+    actuator_id = data_dict.get("actuatorId")
+    try:
+        doc_ref = db.collection("Actuator").document(actuator_id)
+        doc = doc_ref.get()
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found in Actuator collection.")
+        actuator_details = doc.to_dict()
+        actuator_zone = actuator_details.get('zone')
+        # Publish to MQTT
+        mqtt_client.publish_actuator_command(
+            zone=actuator_zone,
+            action=category
+        )
+    except Exception as e:
+        print(f"Error getting Actuator: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving Actuator {doc_id}: {e}")
 
     return {"id": doc_id, **data_dict}
 

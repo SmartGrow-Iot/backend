@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from schema import VALID_ACTUATOR_TYPES, VALID_ZONES, ActuatorIn
 from firebase_config import get_firestore_db
-from services.mqtt_service import mqtt_client
 
 router = APIRouter()
 
@@ -80,29 +79,3 @@ async def get_actuators_by_zone(zone: str, type: str = Query(None, description="
     except Exception as e:
         print(f"Error retrieving actuators by zone: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving actuators: {str(e)}")
-
-""""
-ONLY FOR TESTING PURPOSE, actual logic will change
-"""
-@router.post("/v1/actuator/{doc_id}/trigger")
-async def trigger_actuator(doc_id: str, command: str = "on"):
-    """
-    Triggers actuator and records the command to Firestore.
-    """
-    db = get_firestore_db()
-    try:
-        doc_ref = db.collection("Actuator").document(doc_id)
-        doc = doc_ref.get()
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail="Actuator not found")
-        actuator = doc.to_dict()
-
-        # Publish to MQTT
-        mqtt_client.publish_actuator_command(
-            zone=actuator["zone"],
-            action=command
-        )
-
-        return {"message": f"Actuator '{doc_id}' triggered with command '{command}'"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))

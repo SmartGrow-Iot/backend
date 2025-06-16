@@ -44,16 +44,44 @@ class MQTTClient:
         self.client.loop_stop()
         self.client.disconnect()
 
-    def publish_actuator_command(self, zone: str, action: str = "on"):
+    def publish_actuator_command(self, zone: str, action: str):
+        """
+        Publishes a specific command for an actuator type to a consolidated zone feed.
 
+        Args:
+            zone (str): The zone of the actuator (e.g., 'zone1').
+            action (str): The type of action ('watering', 'light', 'fan').
+        """
         if not self.client.is_connected():
             logger.info("MQTT Client is not connected. Cannot publish.")
             return
-        command = {"pump": "ON", "light": "OFF", "fan": "ON"}
-        payload = json.dumps(command)
-        topic = f"{ADA_USERNAME}/feeds/group-1.actuator-status"
-        # topic = f"{ADA_USERNAME}/feeds/{zone}-welcome-feed"
-        # topic = f"{ADA_USERNAME}/feeds/smartgrow.{actuator_type}.{zone}"
+
+        action_to_key_map = {
+            "watering": "pump",
+            "light": "light",
+            "fan": "fan"
+        }
+        zone_to_group_map = {
+            "zone1": "group-1",
+            "zone2": "group-2",
+            "zone3": "group-3",
+            "zone4": "group-4"
+        }
+        payload_key = action_to_key_map.get(action)
+        group = zone_to_group_map.get(zone)
+
+        if not payload_key:
+            logger.error(f"Invalid action type: '{action}'. No corresponding payload key found.")
+            return
+        if not group:
+            logger.error(f"Invalid zone: '{zone}'. No zone found.")
+            return
+
+        # Other two actuator status are whatever existing values at the ESP32 side
+        payload_dict = {payload_key: "ON"}
+        payload = json.dumps(payload_dict)
+
+        topic = f"{ADA_USERNAME}/feeds/{group}.actuator-status"
         result = self.client.publish(topic, payload)
         if result.rc == 0:
             logger.info(f"Sent `{payload}` to `{topic}`")
