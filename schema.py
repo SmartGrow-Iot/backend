@@ -311,6 +311,13 @@ class PlantThresholds(BaseModel):
     moisture: ThresholdRange
     temperature: ThresholdRange
     light: ThresholdRange
+    airQuality: ThresholdRange 
+
+    @model_validator(mode='after')
+    def validate_air_quality(cls, values):
+        if values.airQuality.max > 1000:  
+            raise ValueError("Air quality maximum should not exceed 1000")
+        return values
 
 class PlantCreate(BaseModel):
     name: str
@@ -339,12 +346,14 @@ class PlantUpdate(BaseModel):
     lightLevel: Optional[float] = None
     temperature: Optional[float] = None
     humidity: Optional[float] = None
+    airQualityLevel: Optional[float] = None  
 
     @model_validator(mode='after')
     def validate_at_least_one_field(cls, self):
         if not any([self.name, self.thresholds, self.description, 
                    self.moisturePin, self.status, self.waterLevel,
-                   self.lightLevel, self.temperature, self.humidity]):
+                   self.lightLevel, self.temperature, self.humidity,
+                   self.airQualityLevel]): 
             raise ValueError("At least one field must be provided for update")
         return self
 
@@ -355,6 +364,7 @@ class PlantOut(PlantCreate):
     lightLevel: float = 50.0
     temperature: float = 25.0
     humidity: float = 50.0
+    airQualityLevel: float = 100.0
     createdAt: datetime
     updatedAt: datetime
 
