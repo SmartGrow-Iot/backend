@@ -1,7 +1,9 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from datetime import datetime        
 from dotenv import load_dotenv
-from schema import EnvironmentalSensorDataIn, Automation, Sensors, Profile
+from services.mqtt_service import mqtt_client
 
 # Import Firebase initialization from firebase_config.py
 from firebase_config import initialize_firebase_admin, get_firestore_db
@@ -12,7 +14,14 @@ initialize_firebase_admin()
 # Get the initialized Firestore DB client
 db = get_firestore_db()
 
-app = FastAPI(title="SmartGrow API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Code to run on startup
+    mqtt_client.connect()
+    yield
+    mqtt_client.disconnect()
+
+app = FastAPI(title="SmartGrow API", version="1.0.0", lifespan=lifespan)
 
 # Include the sensor router
 from routes.user import router as user_router
@@ -20,7 +29,7 @@ from routes.sensor import router as sensor_router
 from routes.actuator import router as actuator_router
 from routes.action_log import router as action_log_router
 from routes.device_control import router as device_control_router
-from routes.plants import router as plant_router 
+from routes.plants import router as plant_router
 
 
 
