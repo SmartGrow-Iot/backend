@@ -34,6 +34,7 @@ async def create_plant(plant: PlantCreate):
             "lightLevel": 50.0,
             "temperature": 25.0,
             "humidity": 50.0,
+            "airQualityLevel": 100.0,
             "createdAt": datetime.utcnow(),
             "updatedAt": datetime.utcnow()
         }
