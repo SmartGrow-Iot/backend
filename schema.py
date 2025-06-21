@@ -1,5 +1,5 @@
-from typing import List, Literal, Optional
-from pydantic import BaseModel, Field, field_validator, model_validator, validator
+from typing import Dict, List, Literal, Optional
+from pydantic import BaseModel, Field, field_validator, model_validator
 from datetime import datetime
 from typing import Optional
 from enum import Enum
@@ -90,6 +90,7 @@ class ActionLogIn(BaseModel):
         description="The identifier of the plant associated with the action.",
         examples=["plant-456"]
     )
+
     trigger: TriggerType = Field(
         ...,
         title="Trigger Type",
@@ -130,7 +131,7 @@ class ActionLogIn(BaseModel):
 
         if self.trigger == TriggerType.auto:
             self.triggerBy = "SYSTEM"
-            
+    
         return self
     
 class ActuatorIn(BaseModel):
@@ -295,3 +296,22 @@ class ZoneBase(BaseModel):
 class ZoneCreate(BaseModel):
     zoneId: Literal["zone1", "zone2", "zone3", "zone4"]
     userId: str
+
+class ZoneSensors(BaseModel):
+    lightSensor: str
+    tempSensor: str
+    humiditySensor: str
+    gasSensor: str
+    moistureSensor: Dict[int, str] 
+
+class ZoneActuators(BaseModel):
+    fanActuator: str
+    lightActuator: str
+    waterActuator: str
+
+class ZoneConfig(BaseModel):
+    zone: str  
+    sensors: ZoneSensors
+    actuators: ZoneActuators
+    availablePins: List[int]  
+    plantIds: List[str] = Field(default_factory=list, max_items=4)

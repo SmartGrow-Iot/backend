@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 from firebase_config import get_firestore_db
 from datetime import datetime
 from pydantic import BaseModel
-from schema import VALID_MOISTURE_PINS, VALID_ZONES, PlantCreate, PlantListResponse, PlantOut, PlantStatus, PlantThresholds,PlantUpdate, ZoneCreate,ZoneInfoResponse
+from schema import VALID_MOISTURE_PINS, VALID_ZONES, PlantCreate, PlantListResponse, PlantOut, PlantStatus, PlantThresholds,PlantUpdate, ZoneActuators, ZoneConfig, ZoneCreate,ZoneInfoResponse, ZoneSensors
 router = APIRouter()
 db = get_firestore_db()  
 
@@ -11,45 +11,69 @@ db = get_firestore_db()
 async def create_plant(plant: PlantCreate):
     """Create new plant with zone and pin validation"""
     try:
-        # Check if pin is available in zone
-        existing = db.collection("Plants") \
-                    .where("zone", "==", plant.zone) \
-                    .where("moisturePin", "==", plant.moisturePin) \
-                    .limit(1).get()
-        
-        if existing:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Pin {plant.moisturePin} already in use in {plant.zone}"
-            )
+        # Get hardware configuration from ZoneInfo
+        zone_info_ref = db.collection("ZoneInfo").document(plant.zone)
+        zone_info = zone_info_ref.get().to_dict()
+        if not zone_info:
+            raise HTTPException(400, detail=f"Zone {plant.zone} hardware not configured")
+
+        # Get availability data from Zones
+        zone_availability_ref = db.collection("Zones").document(plant.zone)
+        zone_availability = zone_availability_ref.get().to_dict()
+        if not zone_availability:
+            raise HTTPException(400, detail=f"Zone {plant.zone} availability not configured")
+
+        # Verify pin availability
+        if plant.moisturePin not in zone_availability.get("availablePins", []):
+            raise HTTPException(400, detail={
+                "message": "Pin not available",
+                "availablePins": zone_availability.get("availablePins", [])
+            })
 
         plant_id = f"plant_{db.collection('Plants').document().id}"
         plant_data = plant.model_dump()
         
-        # Set default sensor values
-        defaults = {
+        # Add sensor/actuator references from ZoneInfo
+        plant_data.update({
             "plantId": plant_id,
+            "zoneHardware": {
+                "sensors": {
+                    "light": zone_info["sensors"]["lightSensor"],
+                    "temperature": zone_info["sensors"]["tempSensor"],
+                    "humidity": zone_info["sensors"]["humiditySensor"],
+                    "airQuality": zone_info["sensors"]["gasSensor"],
+                    "moisture": zone_info["sensors"]["moistureSensor"][str(plant.moisturePin)]  # Convert pin to string if needed
+                },
+                "actuators": zone_info["actuators"]
+            },
             "status": PlantStatus.OPTIMAL,
-            "waterLevel": 50.0,
-            "lightLevel": 50.0,
-            "temperature": 25.0,
-            "humidity": 50.0,
-            "airQualityLevel": 100.0,
             "createdAt": datetime.utcnow(),
             "updatedAt": datetime.utcnow()
-        }
-        plant_data.update(defaults)
+        })
+
+        # Update zone availability in transaction
+        @get_firestore_db.transactional
+        def update_zone(transaction):
+            zone_snap = zone_availability_ref.get(transaction=transaction)
+            if len(zone_snap.get("plantIds", [])) >= 4:
+                raise HTTPException(400, "Zone has maximum plants (4)")
+            
+            transaction.update(zone_availability_ref, {
+                "plantIds": get_firestore_db.ArrayUnion([plant_id]),
+                "availablePins": get_firestore_db.ArrayRemove([plant.moisturePin]),
+                "lastUpdated": datetime.utcnow()
+            })
         
+        transaction = db.transaction()
+        update_zone(transaction)
         db.collection("Plants").document(plant_id).set(plant_data)
+        
         return plant_data
         
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error creating plant: {str(e)}"
-        )
+        raise HTTPException(500, detail=f"Error creating plant: {str(e)}")
     
 @router.get("/v1/plants/{plant_id}", response_model=PlantOut)
 async def get_plant(plant_id: str):
@@ -130,59 +154,75 @@ async def get_zone_plants(zone: str):
 
 @router.get("/v1/users/{user_id}/zones", response_model=List[ZoneInfoResponse])
 async def get_user_zones(user_id: str):
-    """Get zone availability for a user"""
+    """Get zone availability for a user with plant counts"""
     try:
-        zone_info = {}
+        zones_info = []
         
-        # Initialize all zones
-        for zone in VALID_ZONES:
-            zone_info[zone] = {
-                "used_pins": [],
-                "plant_count": 0
-            }
-        
-        # Get user's plants
+        # Get all plants for this user to calculate plant counts per zone
         plants = db.collection("Plants").where("userId", "==", user_id).stream()
+        user_plants = [plant.to_dict() for plant in plants]
         
-        for plant in plants:
-            data = plant.to_dict()
-            zone = data["zone"]
-            zone_info[zone]["used_pins"].append(data["moisturePin"])
-            zone_info[zone]["plant_count"] += 1
-        
-        # Build response
-        response = []
-        for zone, info in zone_info.items():
-            available_pins = [
-                pin for pin in VALID_MOISTURE_PINS 
-                if pin not in info["used_pins"]
-            ]
-            response.append(ZoneInfoResponse(
-                zone=zone,
-                plantCount=info["plant_count"],
-                availablePins=available_pins
+        for zone_id in VALID_ZONES:
+            zone_doc = db.collection("ZoneInfo").document(zone_id).get()
+            if not zone_doc.exists:
+                continue
+                
+            zone_data = zone_doc.to_dict()
+            
+            # Calculate plant count for this user in the zone
+            plant_count = sum(1 for plant in user_plants 
+                            if plant["zone"].lower() == zone_id)
+            
+            zones_info.append(ZoneInfoResponse(
+                zone=zone_id,
+                plantCount=plant_count,
+                availablePins=zone_data.get("availablePins", [])
             ))
         
-        return response
-        
+        return zones_info
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving user zones: {str(e)}"
         )
 
-@router.post("/v1/zones")
-async def initialize_zone(zone: ZoneCreate):
-    """Initialize a new zone with default pins"""
-    if db.collection("Zones").document(zone.zoneId).get().exists:
-        raise HTTPException(400, "Zone already exists")
-    
-    zone_data = {
-        "userId": zone.userId,
-        "plantIds": [],
-        "availablePins": [34, 35, 36, 39],
-        "lastUpdated": datetime.utcnow()
-    }
-    
-    db.collection("Zones").document(zone.zoneId).set(zone_data)
-    return zone_data
+@router.get("/v1/zones/{zone_id}", response_model=ZoneConfig)
+async def get_zone_info(zone_id: str):
+    """Get complete zone configuration including hardware references"""
+    try:
+        if zone_id.lower() not in VALID_ZONES:
+            raise HTTPException(status_code=400, detail="Invalid zone specified")
+            
+        # Get hardware config from ZoneInfo
+        zone_info = db.collection("ZoneInfo").document(zone_id.lower()).get()
+        if not zone_info.exists:
+            raise HTTPException(status_code=404, detail="Zone hardware config not found")
+            
+        # Get availability data from Zones
+        zone_availability = db.collection("Zones").document(zone_id.lower()).get()
+        if not zone_availability.exists:
+            raise HTTPException(status_code=404, detail="Zone availability data not found")
+            
+        zone_info_data = zone_info.to_dict()
+        zone_availability_data = zone_availability.to_dict()
+        
+        # Convert moisture sensor keys to integers if needed
+        if "moistureSensor" in zone_info_data.get("sensors", {}):
+            moisture_sensors = {
+                int(pin): sensor_id 
+                for pin, sensor_id in zone_info_data["sensors"]["moistureSensor"].items()
+            }
+            zone_info_data["sensors"]["moistureSensor"] = moisture_sensors
+        
+        return ZoneConfig(
+            zone=zone_id.lower(),
+            sensors=ZoneSensors(**zone_info_data["sensors"]),
+            actuators=ZoneActuators(**zone_info_data["actuators"]),
+            availablePins=zone_availability_data.get("availablePins", []),
+            plantIds=zone_availability_data.get("plantIds", [])
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving zone config: {str(e)}"
+        )
