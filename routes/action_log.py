@@ -43,9 +43,9 @@ def create_action_log(data: ActionLogIn, category: str):
         actuator_details = doc.to_dict()
         actuator_zone = actuator_details.get('zone')
         # Publish to MQTT
-        mqtt_client.publish_actuator_command(
+        mqtt_client.publish_actuator_status(
             zone=actuator_zone,
-            action=category
+            action=data.action
         )
     except Exception as e:
         print(f"Error getting Actuator: {e}")
