@@ -3,7 +3,7 @@ import os
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 import logging
-from firebase_config import initialize_firebase_admin
+from firebase_config import initialize_firebase_admin, get_firestore_db
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
@@ -16,7 +16,9 @@ ADA_PORT = int(os.getenv("ADA_PORT"))
 ADA_USERNAME = os.getenv("ADA_USERNAME")
 ADA_KEY = os.getenv("ADA_KEY")
 
-db = initialize_firebase_admin()
+initialize_firebase_admin()
+db = get_firestore_db()
+
 
 class MQTTClient:
     def __init__(self):
