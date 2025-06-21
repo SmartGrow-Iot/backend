@@ -17,6 +17,7 @@ db = get_firestore_db()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     mqtt_client.connect()
+    mqtt_client.subscribe_actuator_feedback()
     yield
     mqtt_client.disconnect()
 
