@@ -141,7 +141,8 @@ class TriggerType(str, Enum):
     auto = "auto"
 
 class ActionType(str, Enum):
-    watering = "watering"
+    water_on = "water_on"
+    water_off = "water_off"
     light_on = "light_on"
     light_off = "light_off"
     fan_on = "fan_on"
@@ -157,7 +158,7 @@ class ActionLogIn(BaseModel):
         ...,
         title="Action Type",
         description="The type of action performed by the actuator.",
-        examples=["watering"]
+        examples=["water_on"]
     )
     actuatorId: str = Field(
         ...,
@@ -170,12 +171,6 @@ class ActionLogIn(BaseModel):
         title="Plant ID",
         description="The identifier of the plant associated with the action.",
         examples=["plant-456"]
-    )
-    amount: Optional[float] = Field(
-        None,
-        title="Amount",
-        description="The ml of water. Only applicable for watering.",
-        examples=[500.0]
     )
     trigger: TriggerType = Field(
         ...,
@@ -218,12 +213,6 @@ class ActionLogIn(BaseModel):
         if self.trigger == TriggerType.auto:
             self.triggerBy = "SYSTEM"
             
-        # Validate amount for 'watering'
-        if self.action == ActionType.watering:
-            if self.amount is None:
-                raise ValueError("amount is required for watering actions.")
-            if self.amount <= 0:
-                raise ValueError("amount must be a positive number.")
         return self
     
 class ActuatorIn(BaseModel):

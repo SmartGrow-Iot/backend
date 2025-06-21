@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from schema import ActionLogIn
 from firebase_config import get_firestore_db
 from datetime import datetime
@@ -9,7 +9,7 @@ router = APIRouter()
 
 # Map each endpoint to allowed actions
 ALLOWED_ACTIONS = {
-    "water": {"watering"},
+    "water": {"water_on", "water_off"},
     "light": {"light_on", "light_off"},
     "fan": {"fan_on", "fan_off"}
 }
@@ -116,3 +116,40 @@ async def get_all_action_logs():
     except Exception as e:
         print(f"Error fetching all ActionLogs: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving all ActionLogs: {e}")
+
+@router.get("/v1/logs/action/plant/{plantId}")
+async def get_action_logs_by_plant(
+    plantId: str,
+    sortBy: str = Query("latest", description='Sort order: "latest" (default) or "oldest"')
+):
+    """
+    Fetch action logs for a given plant ID, sorted by timestamp.
+    sortBy: "latest" (default, descending) or "oldest" (ascending)
+    """
+    db = get_firestore_db()
+    try:
+        query = db.collection("ActionLog").where("plantId", "==", plantId)
+        
+        if sortBy == "latest":
+            query = query.order_by("timestamp", direction="DESCENDING")
+        elif sortBy == "oldest":
+            query = query.order_by("timestamp", direction="ASCENDING")
+        else:
+            raise HTTPException(status_code=400, detail='Invalid sortBy value. Use "latest" or "oldest".')
+
+        docs = query.stream()
+        results = []
+        for doc in docs:
+            data = doc.to_dict()
+            # Convert Firestore Timestamps to ISO 8601 strings for JSON serialization
+            if 'timestamp' in data and hasattr(data['timestamp'], 'isoformat'):
+                data['timestamp'] = data['timestamp'].isoformat() + 'Z'
+            data['id'] = doc.id
+            results.append(data)
+
+        return results
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching action logs by plant: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving action logs for plant {plantId}: {e}")
