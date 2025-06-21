@@ -27,7 +27,7 @@ def convert_timestamps(data: dict) -> dict:
     return data
 
 # --- Environmental Data Endpoints ---
-@router.get("/v1/environmental-data", response_model=List[dict])
+@router.get("/v1/logs/sensors", response_model=List[dict])
 async def get_environmental_data(
     zoneId: Optional[str] = Query(None, description="Filter by specific zone ID"),
     latest: bool = Query(False, description="Get only the latest record"),
