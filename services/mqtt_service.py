@@ -163,7 +163,7 @@ class MQTTClient:
                     generated_id = db.collection("ActionLog").document().id
                     doc_id = f"action_{generated_id}"
                     db.collection("ActionLog").document(doc_id).set(action_log)
-                    logger.info(f"Successfully log to db: {action_log}")
+                    logger.info(f"Successfully create action log to db: {action_log}, doc_id: {doc_id}")
 
             except Exception as e:
                 logger.error(f"Error processing incoming MQTT message: {e}")
