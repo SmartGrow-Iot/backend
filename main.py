@@ -44,4 +44,3 @@ app.include_router(sensor_router, prefix='/api')
 app.include_router(device_control_router, prefix='/api')
 app.include_router(plant_router, prefix='/api')
 
-mqtt_client.subscribe_actuator_feedback()
