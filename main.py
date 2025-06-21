@@ -8,15 +8,16 @@ from services.mqtt_service import mqtt_client
 # Import Firebase initialization from firebase_config.py
 from firebase_config import initialize_firebase_admin, get_firestore_db
 
-# Initialize Firebase Admin SDK using your modular firebase_config.py
-initialize_firebase_admin()
-
-# Get the initialized Firestore DB client
-db = get_firestore_db()
+# # Initialize Firebase Admin SDK using your modular firebase_config.py
+# initialize_firebase_admin()
+#
+# # Get the initialized Firestore DB client
+# db = get_firestore_db()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Code to run on startup
+    initialize_firebase_admin()
+    db = get_firestore_db()
     mqtt_client.connect()
     mqtt_client.subscribe_actuator_feedback()
     yield
