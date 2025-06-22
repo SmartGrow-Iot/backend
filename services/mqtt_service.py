@@ -142,7 +142,7 @@ class MQTTClient:
 
                 zone_doc = db.collection("ZoneInfo").document(zone).get()
                 zone_data = zone_doc.to_dict()
-                actuator_id = zone_data.get(actuator)
+                actuator_id = zone_data["actuators"].get(actuator)
 
                 docs = db.collection("Plants").where("zone", "==", zone).stream()
                 plants = [doc.to_dict() for doc in docs]
