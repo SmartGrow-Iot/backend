@@ -139,7 +139,7 @@ class MQTTClient:
                 }
 
                 # Get actuator and plants based on zone
-                zone = payload.get("group")
+                zone = payload.get("zone")
 
                 # Process payload to log data
                 action = action_to_key_map[payload.get("action")]
