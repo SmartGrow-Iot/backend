@@ -137,15 +137,9 @@ class MQTTClient:
                     "light ON": "lightActuator",
                     "light OFF": "lightActuator",
                 }
-                group_to_zone_map = {
-                    "group-1": "zone1",
-                    "group-2": "zone2",
-                    "group-3": "zone3",
-                    "group-4": "zone4"
-                }
 
                 # Get actuator and plants based on zone
-                zone = group_to_zone_map[payload.get("group")]
+                zone = payload.get("group")
 
                 # Process payload to log data
                 action = action_to_key_map[payload.get("action")]
