@@ -54,6 +54,7 @@ async def create_plant(plant: PlantCreate):
         })
 
         # Define the transaction function
+        @firestore.transactional
         def update_in_transaction(transaction):
             zone_snap = zone_availability_ref.get(transaction=transaction)
             if len(zone_snap.get("plantIds", [])) >= 4:
