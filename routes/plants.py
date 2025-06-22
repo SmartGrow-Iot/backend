@@ -4,8 +4,10 @@ from firebase_config import get_firestore_db
 from datetime import datetime
 from pydantic import BaseModel
 from schema import VALID_MOISTURE_PINS, VALID_ZONES, PlantCreate, PlantListResponse, PlantOut, PlantStatus, PlantThresholds,PlantUpdate, ZoneActuators, ZoneConfig, ZoneCreate,ZoneInfoResponse, ZoneSensors
+from google.cloud import firestore
+
 router = APIRouter()
-db = get_firestore_db()  
+db = get_firestore_db()
 
 @router.post("/v1/plants", response_model=PlantOut)
 async def create_plant(plant: PlantCreate):
@@ -32,7 +34,7 @@ async def create_plant(plant: PlantCreate):
 
         plant_id = f"plant_{db.collection('Plants').document().id}"
         plant_data = plant.model_dump()
-        
+
         # Add sensor/actuator references from ZoneInfo
         plant_data.update({
             "plantId": plant_id,
@@ -42,7 +44,7 @@ async def create_plant(plant: PlantCreate):
                     "temperature": zone_info["sensors"]["tempSensor"],
                     "humidity": zone_info["sensors"]["humiditySensor"],
                     "airQuality": zone_info["sensors"]["gasSensor"],
-                    "moisture": zone_info["sensors"]["moistureSensor"][str(plant.moisturePin)]  # Convert pin to string if needed
+                    "moisture": zone_info["sensors"]["moistureSensor"][str(plant.moisturePin)]
                 },
                 "actuators": zone_info["actuators"]
             },
@@ -51,25 +53,27 @@ async def create_plant(plant: PlantCreate):
             "updatedAt": datetime.utcnow()
         })
 
-        # Update zone availability in transaction
-        @get_firestore_db.transactional
-        def update_zone(transaction):
+        # Define the transaction function
+        def update_in_transaction(transaction):
             zone_snap = zone_availability_ref.get(transaction=transaction)
             if len(zone_snap.get("plantIds", [])) >= 4:
                 raise HTTPException(400, "Zone has maximum plants (4)")
-            
+
             transaction.update(zone_availability_ref, {
-                "plantIds": get_firestore_db.ArrayUnion([plant_id]),
-                "availablePins": get_firestore_db.ArrayRemove([plant.moisturePin]),
+                "plantIds": firestore.ArrayUnion([plant_id]),
+                "availablePins": firestore.ArrayRemove([plant.moisturePin]),
                 "lastUpdated": datetime.utcnow()
             })
-        
+
+        # Run the transaction
         transaction = db.transaction()
-        update_zone(transaction)
+        update_in_transaction(transaction)
+
+        # Create the plant document
         db.collection("Plants").document(plant_id).set(plant_data)
-        
+
         return plant_data
-        
+
     except HTTPException:
         raise
     except Exception as e:

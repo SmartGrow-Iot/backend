@@ -3,11 +3,8 @@ import os
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 import logging
-
-from google.cloud import firestore
-
 from firebase_config import initialize_firebase_admin, get_firestore_db
-from datetime import datetime, timezone
+from datetime import datetime
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
