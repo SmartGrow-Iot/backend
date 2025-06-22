@@ -57,7 +57,7 @@ async def create_plant(plant: PlantCreate):
         @firestore.transactional
         def update_in_transaction(transaction):
             zone_snap = zone_availability_ref.get(transaction=transaction)
-            if len(zone_snap.get("plantIds", [])) >= 4:
+            if len(zone_snap.to_dict().get("plantIds", [])) >= 4:
                 raise HTTPException(400, "Zone has maximum plants (4)")
 
             transaction.update(zone_availability_ref, {
