@@ -3,6 +3,9 @@ import os
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 import logging
+
+from google.cloud import firestore
+
 from firebase_config import initialize_firebase_admin, get_firestore_db
 from datetime import datetime, timezone
 
@@ -23,9 +26,9 @@ db = get_firestore_db()
 # --- Helper Functions ---
 def parse_iso_timestamp(iso_str: str) -> datetime:
     """Convert ISO 8601 string with 'Z' to a Firestore-compatible datetime object"""
-    if iso_str.endswith("Z"):
-        iso_str = iso_str.replace("Z", "+00:00")
-    return datetime.fromisoformat(iso_str)
+    dt_object = datetime.fromisoformat(iso_str.replace('Z', '+00:00'))
+    firestore_timestamp = firestore.Timestamp.from_datetime(dt_object)
+    return firestore_timestamp
 
 
 class MQTTClient:
