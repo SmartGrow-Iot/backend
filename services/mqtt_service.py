@@ -26,10 +26,12 @@ db = get_firestore_db()
 # --- Helper Functions ---
 def parse_iso_timestamp(iso_str: str) -> datetime:
     """Convert ISO 8601 string with 'Z' to a Firestore-compatible datetime object"""
-    dt_object = datetime.fromisoformat(iso_str.replace('Z', '+00:00'))
-    firestore_timestamp = firestore.Timestamp.from_datetime(dt_object)
-    return firestore_timestamp
-
+    try:
+        dt_object = datetime.fromisoformat(iso_str.replace('Z', '+00:00'))
+        firestore_timestamp = firestore.Timestamp.from_datetime(dt_object)
+        return firestore_timestamp
+    except Exception as e:
+        logger.error(f"Error processing timestamp")
 
 class MQTTClient:
     def __init__(self):
