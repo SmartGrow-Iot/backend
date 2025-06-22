@@ -4,6 +4,7 @@ import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 import logging
 from firebase_config import initialize_firebase_admin, get_firestore_db
+from datetime import datetime, timezone
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
@@ -18,6 +19,13 @@ ADA_KEY = os.getenv("ADA_KEY")
 
 initialize_firebase_admin()
 db = get_firestore_db()
+
+# --- Helper Functions ---
+def parse_iso_timestamp(iso_str: str) -> datetime:
+    """Convert ISO 8601 string with 'Z' to a Firestore-compatible datetime object"""
+    if iso_str.endswith("Z"):
+        iso_str = iso_str.replace("Z", "+00:00")
+    return datetime.fromisoformat(iso_str)
 
 
 class MQTTClient:
@@ -149,7 +157,7 @@ class MQTTClient:
 
                 trigger = "auto"
                 triggerBy = "SYSTEM"
-                timestamp = payload.get("timestamp")
+                timestamp = parse_iso_timestamp(payload.get("timestamp"))
 
                 for plant in plants:
                     action_log = {
