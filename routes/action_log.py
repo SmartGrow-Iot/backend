@@ -193,4 +193,4 @@ async def get_action_logs_by_zone(
         raise
     except Exception as e:
         print(f"Error fetching action logs by zone: {e}")
-        raise HTTPException(status_code=500, detail=f"Error retrieving action logs for plant {zoneId}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving action logs for zone {zoneId}: {e}")
