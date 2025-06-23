@@ -33,6 +33,13 @@ def create_action_log(data: ZoneActionLogIn, category: str):
 
     generated_id = db.collection("ActionLog").document().id
     doc_id = f"action_{generated_id}"
+
+    # Publish to MQTT
+    mqtt_client.publish_actuator_status(
+        zone=data.zone,
+        action=data.action
+    )
+
     db.collection("ActionLog").document(doc_id).set(data_dict)
 
     return {"id": doc_id, **data_dict}
