@@ -224,7 +224,7 @@ async def get_user_plants(user_id: str):
         )
     
 
-@router.get("/v1/zones/{zone}/plants", response_model=PlantListResponse)
+@router.get("/v1/zones/{zone}/plants")
 async def get_zone_plants(zone: str):
     """Get all plants in a specific zone"""
     try:
@@ -234,10 +234,11 @@ async def get_zone_plants(zone: str):
         docs = db.collection("Plants").where("zone", "==", zone).stream()
         plants = [doc.to_dict() for doc in docs]
         
-        return PlantListResponse(
-            count=len(plants),
-            plants=plants
-        )
+        return {
+            "success": True,
+            "count": len(plants),
+            "plants": plants
+        }
     except Exception as e:
         raise HTTPException(
             status_code=500,
