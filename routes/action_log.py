@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from schema import ActionLogIn
+from schema import ActionLogIn, ZoneActionLogIn
 from firebase_config import get_firestore_db
 from datetime import datetime
 
@@ -17,7 +17,7 @@ ALLOWED_ACTIONS = {
 }
 
 # Shared handler logic
-def create_action_log(data: ActionLogIn, category: str):
+def create_action_log(data: ZoneActionLogIn, category: str):
     allowed = ALLOWED_ACTIONS.get(category)
     if allowed is None:
         raise HTTPException(status_code=500, detail="Server misconfiguration")
@@ -33,46 +33,26 @@ def create_action_log(data: ActionLogIn, category: str):
 
     generated_id = db.collection("ActionLog").document().id
     doc_id = f"action_{generated_id}"
-
-    plant_id = data_dict.get("plantId")
-    try:
-        doc_ref = db.collection("Plants").document(plant_id)
-        doc = doc_ref.get()
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail=f"Document '{plant_id}' not found in Plants collection.")
-        plant_details = doc.to_dict()
-        plant_zone = plant_details.get('zone')
-        # Publish to MQTT
-        mqtt_client.publish_actuator_status(
-            zone=plant_zone,
-            action=data.action
-        )
-    except Exception as e:
-        print(f"Error getting Actuator: {e}")
-        raise HTTPException(status_code=500, detail=f"Error retrieving Actuator {doc_id}: {e}")
-
-    data_dict.update({"zone": plant_zone})
-
     db.collection("ActionLog").document(doc_id).set(data_dict)
 
     return {"id": doc_id, **data_dict}
 
 @router.post("/v1/logs/action/water")
-async def log_water_action(data: ActionLogIn):
+async def log_water_action(data: ZoneActionLogIn):
     """
     Creates a new ActionLog document for watering actions.
     """
     return create_action_log(data, "water")
 
 @router.post("/v1/logs/action/light")
-async def log_light_action(data: ActionLogIn):
+async def log_light_action(data: ZoneActionLogIn):
     """
     Creates a new ActionLog document for light actions.
     """
     return create_action_log(data, "light")
 
 @router.post("/v1/logs/action/fan")
-async def log_fan_action(data: ActionLogIn):
+async def log_fan_action(data: ZoneActionLogIn):
     """
     Creates a new ActionLog document for fan actions.
     """

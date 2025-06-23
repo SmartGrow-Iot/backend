@@ -133,6 +133,59 @@ class ActionLogIn(BaseModel):
             self.triggerBy = "SYSTEM"
     
         return self
+
+class ZoneActionLogIn(BaseModel):
+    """
+    Pydantic model for incoming ZoneActionLog for POST requests.
+    """
+    action: ActionType = Field(
+        ...,
+        title="Action Type",
+        description="The type of action performed by the actuator.",
+        examples=["water_on"]
+    )
+    actuatorId: str = Field(
+        ...,
+        title="Actuator ID",
+        description="The unique identifier of the actuator that performed the action.",
+        examples=["actuator-123"]
+    )
+    trigger: TriggerType = Field(
+        ...,
+        title="Trigger Type",
+        description="Indicates whether the action was triggered manually or automatically.",
+        examples=["manual"]
+    )
+    triggerBy: Optional[str] = Field(
+        None,
+        title="Triggered By",
+        description="Identifier of the user that triggered the action. Will be set to 'SYSTEM' for automatic triggers.",
+        examples=["user-789"]
+    )
+    timestamp: datetime = Field(
+        default_factory=datetime.utcnow,
+        title="Timestamp",
+        description="The date and time when the action occurred.",
+        examples=["2025-06-05T14:30:00Z"]
+    )
+    zone: Literal["zone1", "zone2", "zone3", "zone4"] = Field(..., example="zone1")
+
+    @field_validator('actuatorId')
+    def check_actuatorId(cls, v):
+        if not v:
+            raise ValueError("Missing 'actuatorId'. Please provide a valid actuator ID.")
+        return v
+
+    # Validation to ensure triggerBy is set correctly based on trigger type
+    @model_validator(mode='after')
+    def validate_trigger_logic(self) -> 'ActionLogIn':
+        if self.trigger == TriggerType.manual and not self.triggerBy:
+            raise ValueError("triggerBy is required when trigger is 'manual'")
+
+        if self.trigger == TriggerType.auto:
+            self.triggerBy = "SYSTEM"
+
+        return self
     
 class ActuatorIn(BaseModel):
     """
