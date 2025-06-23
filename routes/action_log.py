@@ -34,24 +34,26 @@ def create_action_log(data: ActionLogIn, category: str):
     generated_id = db.collection("ActionLog").document().id
     doc_id = f"action_{generated_id}"
 
-    db.collection("ActionLog").document(doc_id).set(data_dict)
-
-    actuator_id = data_dict.get("actuatorId")
+    plant_id = data_dict.get("plantId")
     try:
-        doc_ref = db.collection("Actuator").document(actuator_id)
+        doc_ref = db.collection("Plants").document(plant_id)
         doc = doc_ref.get()
         if not doc.exists:
-            raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found in Actuator collection.")
-        actuator_details = doc.to_dict()
-        actuator_zone = actuator_details.get('zone')
+            raise HTTPException(status_code=404, detail=f"Document '{plant_id}' not found in Plants collection.")
+        plant_details = doc.to_dict()
+        plant_zone = plant_details.get('zone')
         # Publish to MQTT
         mqtt_client.publish_actuator_status(
-            zone=actuator_zone,
+            zone=plant_zone,
             action=data.action
         )
     except Exception as e:
         print(f"Error getting Actuator: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving Actuator {doc_id}: {e}")
+
+    data_dict.update({"zone": plant_zone})
+
+    db.collection("ActionLog").document(doc_id).set(data_dict)
 
     return {"id": doc_id, **data_dict}
 
@@ -155,3 +157,40 @@ async def get_action_logs_by_plant(
     except Exception as e:
         print(f"Error fetching action logs by plant: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving action logs for plant {plantId}: {e}")
+
+@router.get("/v1/logs/action/zone/{zoneId}")
+async def get_action_logs_by_zone(
+    zoneId: str,
+    sortBy: str = Query("latest", description='Sort order: "latest" (default) or "oldest"')
+):
+    """
+    Fetch action logs for a given zone ID, sorted by timestamp.
+    sortBy: "latest" (default, descending) or "oldest" (ascending)
+    """
+    db = get_firestore_db()
+    try:
+        query = db.collection("ActionLog").where("zone", "==", zoneId)
+
+        if sortBy == "latest":
+            query = query.order_by("timestamp", direction="DESCENDING")
+        elif sortBy == "oldest":
+            query = query.order_by("timestamp", direction="ASCENDING")
+        else:
+            raise HTTPException(status_code=400, detail='Invalid sortBy value. Use "latest" or "oldest".')
+
+        docs = query.stream()
+        results = []
+        for doc in docs:
+            data = doc.to_dict()
+            # Convert Firestore Timestamps to ISO 8601 strings for JSON serialization
+            if 'timestamp' in data and hasattr(data['timestamp'], 'isoformat'):
+                data['timestamp'] = data['timestamp'].isoformat() + 'Z'
+            data['id'] = doc.id
+            results.append(data)
+
+        return results
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching action logs by zone: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving action logs for plant {zoneId}: {e}")
