@@ -132,6 +132,10 @@ async def update_thresholds(plant_id: str, thresholds: PlantThresholds):
         doc_ref = db.collection("Plants").document(plant_id)
         if not doc_ref.get().exists:
             raise HTTPException(status_code=404, detail="Plant not found")
+        doc_ref.update({
+            "thresholds": thresholds.model_dump(),
+            "updatedAt": datetime.utcnow()
+        })
         plant_doc = doc_ref.get()
         plant_data = plant_doc.to_dict()
 
