@@ -4,6 +4,7 @@ import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 import logging
 from firebase_config import initialize_firebase_admin, get_firestore_db
+from datetime import datetime
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
@@ -19,6 +20,16 @@ ADA_KEY = os.getenv("ADA_KEY")
 initialize_firebase_admin()
 db = get_firestore_db()
 
+# --- Helper Functions ---
+def parse_iso_timestamp(iso_str: str) -> datetime:
+    """Convert ISO 8601 string to a Firestore-compatible datetime object"""
+    if iso_str.endswith("Z"):
+        iso_str = iso_str.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(iso_str)
+    except ValueError:
+        logger.error(f"Error: The string '{iso_str}' is not a valid ISO 8601 format.")
+        raise
 
 class MQTTClient:
     def __init__(self):
@@ -126,15 +137,9 @@ class MQTTClient:
                     "light ON": "lightActuator",
                     "light OFF": "lightActuator",
                 }
-                group_to_zone_map = {
-                    "group-1": "zone1",
-                    "group-2": "zone2",
-                    "group-3": "zone3",
-                    "group-4": "zone4"
-                }
 
                 # Get actuator and plants based on zone
-                zone = group_to_zone_map[payload.get("group")]
+                zone = payload.get("zone")
 
                 # Process payload to log data
                 action = action_to_key_map[payload.get("action")]
@@ -142,14 +147,14 @@ class MQTTClient:
 
                 zone_doc = db.collection("ZoneInfo").document(zone).get()
                 zone_data = zone_doc.to_dict()
-                actuator_id = zone_data.get(actuator)
+                actuator_id = zone_data["actuators"].get(actuator)
 
                 docs = db.collection("Plants").where("zone", "==", zone).stream()
                 plants = [doc.to_dict() for doc in docs]
 
                 trigger = "auto"
                 triggerBy = "SYSTEM"
-                timestamp = payload.get("timestamp")
+                timestamp = parse_iso_timestamp(payload.get("timestamp"))
 
                 for plant in plants:
                     action_log = {
@@ -163,7 +168,7 @@ class MQTTClient:
                     generated_id = db.collection("ActionLog").document().id
                     doc_id = f"action_{generated_id}"
                     db.collection("ActionLog").document(doc_id).set(action_log)
-                    logger.info(f"Successfully log to db: {action_log}")
+                    logger.info(f"Successfully create action log to db: {action_log}, doc_id: {doc_id}")
 
             except Exception as e:
                 logger.error(f"Error processing incoming MQTT message: {e}")
