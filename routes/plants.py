@@ -139,9 +139,28 @@ async def update_thresholds(plant_id: str, thresholds: PlantThresholds):
         plant_doc = doc_ref.get()
         plant_data = plant_doc.to_dict()
 
-        # Get system thresholds
-        thresholds_doc = db.collection("Threshold").document("threshold").get()
-        thresholds_data = thresholds_doc.to_dict()
+        thresholds_ref = db.collection("Threshold").document("threshold")
+        if not thresholds_ref.get().exists:
+            # Default values if system thresholds has not been set
+            thresholds_data = {
+                "thresholds": {
+                    "airQuality": {
+                        "max": 300,
+                        "min": 0
+                    },
+                    "light": {
+                        "max": 400,
+                        "min": 10
+                    },
+                    "temperature": {
+                        "max": 27,
+                        "min": 24
+                    }
+                }
+            }
+        else:
+            thresholds_doc = thresholds_ref.get()
+            thresholds_data = thresholds_doc.to_dict()
 
         current_thresholds = plant_data.get("thresholds")
         current_thresholds.update(thresholds_data["thresholds"])
