@@ -181,7 +181,7 @@ async def update_thresholds(plant_id: str, thresholds: PlantThresholds):
             detail=f"Error updating thresholds: {str(e)}"
         )
 
-@router.post("/v1/plants/thresholds")
+@router.post("/v1/system/thresholds")
 async def initialize_system_thresholds(thresholds: SystemThresholds):
     """Initialize system-wide thresholds"""
     try:
@@ -201,7 +201,7 @@ async def initialize_system_thresholds(thresholds: SystemThresholds):
         )
 
 
-@router.put("/v1/plants/thresholds")
+@router.put("/v1/system/thresholds")
 async def update_system_thresholds(thresholds: SystemThresholds):
     """Update system-wide thresholds"""
     try:
@@ -220,7 +220,7 @@ async def update_system_thresholds(thresholds: SystemThresholds):
             detail=f"Error updating system thresholds: {str(e)}"
         )
 
-@router.get("/v1/plants/thresholds")
+@router.get("/v1/system/thresholds")
 async def get_system_thresholds():
     """Get system-wide thresholds"""
     try:
