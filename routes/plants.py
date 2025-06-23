@@ -3,7 +3,8 @@ from fastapi import APIRouter, HTTPException
 from firebase_config import get_firestore_db
 from datetime import datetime
 from pydantic import BaseModel
-from schema import VALID_MOISTURE_PINS, VALID_ZONES, PlantCreate, PlantListResponse, PlantOut, PlantStatus, PlantThresholds,PlantUpdate, ZoneActuators, ZoneConfig, ZoneCreate,ZoneInfoResponse, ZoneSensors
+from schema import VALID_MOISTURE_PINS, VALID_ZONES, PlantCreate, PlantListResponse, PlantOut, PlantStatus, \
+    PlantThresholds, PlantUpdate, ZoneActuators, ZoneConfig, ZoneCreate, ZoneInfoResponse, ZoneSensors, SystemThresholds
 from google.cloud import firestore
 
 router = APIRouter(
@@ -72,6 +73,36 @@ async def create_plant(plant: PlantCreate):
         transaction = db.transaction()
         update_in_transaction(transaction)
 
+        # Get system thresholds
+        doc_ref = db.collection("Threshold").document("threshold")
+        if not doc_ref.get().exists:
+            # Default values if system thresholds has not been set
+            thresholds_data = {
+                "thresholds": {
+                    "airQuality": {
+                        "max": 300,
+                        "min": 0
+                    },
+                    "light": {
+                        "max": 400,
+                        "min": 10
+                    },
+                    "temperature": {
+                        "max": 27,
+                        "min": 24
+                    }
+                }
+            }
+        else:
+            thresholds_doc = doc_ref.get()
+            thresholds_data = thresholds_doc.to_dict()
+
+        # Create a flattened dictionary with dot notation for the update
+        update_data = {f"thresholds.{key}": value for key, value in thresholds_data["thresholds"].items()}
+
+        # Call the update method
+        plant_data.update(update_data)
+
         # Create the plant document
         db.collection("Plants").document(plant_id).set(plant_data)
 
@@ -98,7 +129,7 @@ async def get_plant(plant_id: str):
     
 @router.put("/v1/plants/{plant_id}/thresholds")
 async def update_thresholds(plant_id: str, thresholds: PlantThresholds):
-    """Update plant thresholds with validation"""
+    """Update plant moisture thresholds with validation"""
     try:
         doc_ref = db.collection("Plants").document(plant_id)
         if not doc_ref.get().exists:
@@ -114,7 +145,61 @@ async def update_thresholds(plant_id: str, thresholds: PlantThresholds):
             status_code=500,
             detail=f"Error updating thresholds: {str(e)}"
         )
-    
+
+@router.post("/v1/plants/thresholds")
+async def initialize_system_thresholds(thresholds: SystemThresholds):
+    """Initialize system-wide thresholds"""
+    try:
+        thresholds_data = thresholds.model_dump()
+        thresholds_data.update({
+            "lastUpdated": datetime.utcnow()
+        })
+        db.collection("Threshold").document("threshold").set(thresholds_data)
+
+        return thresholds_data
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error initializing system thresholds: {str(e)}"
+        )
+
+
+@router.put("/v1/plants/thresholds")
+async def update_system_thresholds(thresholds: SystemThresholds):
+    """Update system-wide thresholds"""
+    try:
+        doc_ref = db.collection("Threshold").document("threshold")
+        if not doc_ref.get().exists:
+            raise HTTPException(status_code=404, detail="System thresholds not found")
+
+        doc_ref.update({
+            "thresholds": thresholds.model_dump(),
+            "lastUpdated": datetime.utcnow()
+        })
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating system thresholds: {str(e)}"
+        )
+
+@router.get("/v1/plants/thresholds")
+async def get_system_thresholds():
+    """Get system-wide thresholds"""
+    try:
+        doc_ref = db.collection("Threshold").document("threshold")
+        if not doc_ref.get().exists:
+            raise HTTPException(status_code=404, detail="System thresholds not found")
+        thresholds_doc = doc_ref.get()
+        thresholds_data = thresholds_doc.to_dict()
+        return thresholds_data
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving system thresholds: {str(e)}"
+        )
+
+
 @router.get("/v1/plants/user/{user_id}", response_model=PlantListResponse)
 async def get_user_plants(user_id: str):
     """Get all plants for a user with zone info"""

@@ -268,8 +268,12 @@ class ThresholdRange(BaseModel):
         return self
 
 class PlantThresholds(BaseModel):
-    """Container for all plant thresholds"""
+    """Container for plant moisture thresholds"""
     moisture: ThresholdRange
+
+
+class SystemThresholds(BaseModel):
+    """Container for temperature, light and air quality thresholds"""
     temperature: ThresholdRange
     light: ThresholdRange
     airQuality: ThresholdRange 
