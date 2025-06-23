@@ -151,10 +151,12 @@ async def initialize_system_thresholds(thresholds: SystemThresholds):
     """Initialize system-wide thresholds"""
     try:
         thresholds_data = thresholds.model_dump()
-        thresholds_data.update({
+        threshold_doc = {}
+        threshold_doc.update({
+            "thresholds": thresholds_data,
             "lastUpdated": datetime.utcnow()
         })
-        db.collection("Threshold").document("threshold").set(thresholds_data)
+        db.collection("Threshold").document("threshold").set(threshold_doc)
 
         return thresholds_data
     except Exception as e:
