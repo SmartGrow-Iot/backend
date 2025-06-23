@@ -111,7 +111,7 @@ async def create_plant(plant: PlantCreate):
     except Exception as e:
         raise HTTPException(500, detail=f"Error creating plant: {str(e)}")
     
-@router.get("/v1/plants/{plant_id}", response_model=PlantOut)
+@router.get("/v1/plants/{plant_id}")
 async def get_plant(plant_id: str):
     """Get complete plant data by ID"""
     try:
