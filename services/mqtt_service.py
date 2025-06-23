@@ -149,26 +149,22 @@ class MQTTClient:
                 zone_data = zone_doc.to_dict()
                 actuator_id = zone_data["actuators"].get(actuator)
 
-                docs = db.collection("Plants").where("zone", "==", zone).stream()
-                plants = [doc.to_dict() for doc in docs]
-
                 trigger = "auto"
                 triggerBy = "SYSTEM"
                 timestamp = parse_iso_timestamp(payload.get("timestamp"))
 
-                for plant in plants:
-                    action_log = {
-                        "action": action,
-                        "actuatorId": actuator_id,
-                        "plantId": plant['plantId'],
-                        "trigger": trigger,
-                        "triggerBy": triggerBy,
-                        "timestamp": timestamp
-                    }
-                    generated_id = db.collection("ActionLog").document().id
-                    doc_id = f"action_{generated_id}"
-                    db.collection("ActionLog").document(doc_id).set(action_log)
-                    logger.info(f"Successfully create action log to db: {action_log}, doc_id: {doc_id}")
+                action_log = {
+                    "action": action,
+                    "actuatorId": actuator_id,
+                    "zone": zone,
+                    "trigger": trigger,
+                    "triggerBy": triggerBy,
+                    "timestamp": timestamp
+                }
+                generated_id = db.collection("ActionLog").document().id
+                doc_id = f"action_{generated_id}"
+                db.collection("ActionLog").document(doc_id).set(action_log)
+                logger.info(f"Successfully create action log to db: {action_log}, doc_id: {doc_id}")
 
             except Exception as e:
                 logger.error(f"Error processing incoming MQTT message: {e}")
