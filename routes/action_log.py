@@ -5,7 +5,9 @@ from datetime import datetime
 
 from services.mqtt_service import mqtt_client
 
-router = APIRouter()
+router = APIRouter(
+    tags=["action logs"]
+)
 
 # Map each endpoint to allowed actions
 ALLOWED_ACTIONS = {

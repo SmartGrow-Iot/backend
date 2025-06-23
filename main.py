@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     yield
     mqtt_client.disconnect()
 
-app = FastAPI(title="SmartGrow API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="SmartGrow API", version="2.0.0", lifespan=lifespan)
 
 # Include the sensor router
 from routes.user import router as user_router

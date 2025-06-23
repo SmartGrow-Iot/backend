@@ -6,7 +6,9 @@ from pydantic import BaseModel
 from schema import VALID_MOISTURE_PINS, VALID_ZONES, PlantCreate, PlantListResponse, PlantOut, PlantStatus, PlantThresholds,PlantUpdate, ZoneActuators, ZoneConfig, ZoneCreate,ZoneInfoResponse, ZoneSensors
 from google.cloud import firestore
 
-router = APIRouter()
+router = APIRouter(
+    tags=["plants"]
+)
 db = get_firestore_db()
 
 @router.post("/v1/plants", response_model=PlantOut)

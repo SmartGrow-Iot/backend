@@ -2,7 +2,9 @@ from fastapi import APIRouter, HTTPException, Query
 from schema import VALID_ACTUATOR_TYPES, VALID_ZONES, ActuatorIn
 from firebase_config import get_firestore_db
 
-router = APIRouter()
+router = APIRouter(
+    tags=["actuators"]
+)
 
 @router.post("/v1/actuator")
 async def add_actuator(data: ActuatorIn):
