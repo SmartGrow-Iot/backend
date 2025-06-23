@@ -97,11 +97,9 @@ async def create_plant(plant: PlantCreate):
             thresholds_doc = doc_ref.get()
             thresholds_data = thresholds_doc.to_dict()
 
-        # Create a flattened dictionary with dot notation for the update
-        update_data = {f"thresholds.{key}": value for key, value in thresholds_data["thresholds"].items()}
-
-        # Call the update method
-        plant_data.update(update_data)
+        current_thresholds = plant_data.get("thresholds")
+        current_thresholds.update(thresholds_data["thresholds"])
+        plant_data["thresholds"] = current_thresholds
 
         # Create the plant document
         db.collection("Plants").document(plant_id).set(plant_data)
