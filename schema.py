@@ -38,7 +38,7 @@ class PinSoilMoisture(BaseModel):
 class EnvironmentalDataRequest(BaseModel):
     """Store zone environmental data directly as received"""
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    zoneId: str = Field(..., example="zone_1")
+    zoneId: str = Field(..., example="zone1")
     zoneSensors: dict[str, float] = Field(..., example={
         "humidity": 83,
         "light": 48,
