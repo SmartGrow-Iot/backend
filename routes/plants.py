@@ -12,7 +12,7 @@ router = APIRouter(
 )
 db = get_firestore_db()
 
-@router.post("/v1/plants", response_model=PlantOut)
+@router.post("/v1/plants")
 async def create_plant(plant: PlantCreate):
     """Create new plant with zone and pin validation"""
     try:
