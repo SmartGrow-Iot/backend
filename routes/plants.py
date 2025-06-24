@@ -193,6 +193,10 @@ async def initialize_system_thresholds(thresholds: SystemThresholds):
         })
         db.collection("Threshold").document("threshold").set(threshold_doc)
 
+        system_thresholds = {
+            "thresholds": thresholds_data
+        }
+
         # Initialize a WriteBatch
         batch = db.batch()
 
@@ -204,7 +208,7 @@ async def initialize_system_thresholds(thresholds: SystemThresholds):
         update_counter = 0
         for doc in docs:
             # Use set() with merge=True to update the nested fields without overwriting 'moisture'
-            batch.set(doc.reference, thresholds_data, merge=True)
+            batch.set(doc.reference, system_thresholds, merge=True)
             update_counter += 1
 
         # Commit the batch to execute all the updates at once
@@ -236,6 +240,10 @@ async def update_system_thresholds(thresholds: SystemThresholds):
             "lastUpdated": datetime.utcnow()
         })
 
+        system_thresholds = {
+            "thresholds": thresholds_data
+        }
+
         # Initialize a WriteBatch
         batch = db.batch()
 
@@ -247,7 +255,7 @@ async def update_system_thresholds(thresholds: SystemThresholds):
         update_counter = 0
         for doc in docs:
             # Use set() with merge=True to update the nested fields without overwriting 'moisture'
-            batch.set(doc.reference, thresholds_data, merge=True)
+            batch.set(doc.reference, system_thresholds, merge=True)
             update_counter += 1
 
         # Commit the batch to execute all the updates at once
