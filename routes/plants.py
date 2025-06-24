@@ -193,6 +193,27 @@ async def initialize_system_thresholds(thresholds: SystemThresholds):
         })
         db.collection("Threshold").document("threshold").set(threshold_doc)
 
+        # Initialize a WriteBatch
+        batch = db.batch()
+
+        # Get a reference to the 'Plants' collection and stream its documents
+        plants_ref = db.collection("Plants")
+        docs = plants_ref.stream()
+
+        # Loop through each document and add an update operation to the batch
+        update_counter = 0
+        for doc in docs:
+            # Use set() with merge=True to update the nested fields without overwriting 'moisture'
+            batch.set(doc.reference, thresholds_data, merge=True)
+            update_counter += 1
+
+        # Commit the batch to execute all the updates at once
+        if update_counter > 0:
+            batch.commit()
+            print(f"\nSuccessfully committed batch update for {update_counter} plants.")
+        else:
+            print("\nNo plants found to update.")
+
         return thresholds_data
     except Exception as e:
         raise HTTPException(
@@ -205,14 +226,37 @@ async def initialize_system_thresholds(thresholds: SystemThresholds):
 async def update_system_thresholds(thresholds: SystemThresholds):
     """Update system-wide thresholds"""
     try:
+        thresholds_data = thresholds.model_dump()
         doc_ref = db.collection("Threshold").document("threshold")
         if not doc_ref.get().exists:
             raise HTTPException(status_code=404, detail="System thresholds not found")
 
         doc_ref.update({
-            "thresholds": thresholds.model_dump(),
+            "thresholds": thresholds_data,
             "lastUpdated": datetime.utcnow()
         })
+
+        # Initialize a WriteBatch
+        batch = db.batch()
+
+        # Get a reference to the 'Plants' collection and stream its documents
+        plants_ref = db.collection("Plants")
+        docs = plants_ref.stream()
+
+        # Loop through each document and add an update operation to the batch
+        update_counter = 0
+        for doc in docs:
+            # Use set() with merge=True to update the nested fields without overwriting 'moisture'
+            batch.set(doc.reference, thresholds_data, merge=True)
+            update_counter += 1
+
+        # Commit the batch to execute all the updates at once
+        if update_counter > 0:
+            batch.commit()
+            print(f"\nSuccessfully committed batch update for {update_counter} plants.")
+        else:
+            print("\nNo plants found to update.")
+
         return {"success": True}
     except Exception as e:
         raise HTTPException(
