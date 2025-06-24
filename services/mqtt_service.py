@@ -117,7 +117,7 @@ class MQTTClient:
                 logger.info(f"Received message on topic `{msg.topic}`: {payload}")
 
                 # Three key fields interested
-                if "action" not in payload and "group" not in payload and "timestamp" not in payload:
+                if "action" not in payload or "zone" not in payload or "timestamp" not in payload:
                     logger.info("Incomplete payload.")
                     return
 
