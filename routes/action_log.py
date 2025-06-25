@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from schema import ActionLogIn, ZoneActionLogIn
+from schema import ActionLogIn, ZoneActionLogIn, VALID_ZONES
 from firebase_config import get_firestore_db
 from datetime import datetime
 
@@ -65,27 +65,28 @@ async def log_fan_action(data: ZoneActionLogIn):
     """
     return create_action_log(data, "fan")
 
-@router.get("/v1/logs/action/{doc_id}")
-async def get_action_log(doc_id: str):
-    """
-    Retrieves a document by its ID from the 'ActionLog' collection.
-    """
-    db = get_firestore_db()
-    try:
-        doc_ref = db.collection("ActionLog").document(doc_id)
-        doc = doc_ref.get()
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found in ActionLog collection.")
-        
-        # Convert Firestore Timestamps to ISO 8601 strings for JSON serialization
-        data = doc.to_dict()
-        if 'timestamp' in data and hasattr(data['timestamp'], 'isoformat'):
-            data['timestamp'] = data['timestamp'].isoformat() + 'Z'
-
-        return data
-    except Exception as e:
-        print(f"Error getting ActionLog: {e}")
-        raise HTTPException(status_code=500, detail=f"Error retrieving ActionLog {doc_id}: {e}")
+# # v1.0.0
+# @router.get("/v1/logs/action/{doc_id}")
+# async def get_action_log(doc_id: str):
+#     """
+#     Retrieves a document by its ID from the 'ActionLog' collection.
+#     """
+#     db = get_firestore_db()
+#     try:
+#         doc_ref = db.collection("ActionLog").document(doc_id)
+#         doc = doc_ref.get()
+#         if not doc.exists:
+#             raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found in ActionLog collection.")
+#
+#         # Convert Firestore Timestamps to ISO 8601 strings for JSON serialization
+#         data = doc.to_dict()
+#         if 'timestamp' in data and hasattr(data['timestamp'], 'isoformat'):
+#             data['timestamp'] = data['timestamp'].isoformat() + 'Z'
+#
+#         return data
+#     except Exception as e:
+#         print(f"Error getting ActionLog: {e}")
+#         raise HTTPException(status_code=500, detail=f"Error retrieving ActionLog {doc_id}: {e}")
     
 @router.get("/v1/logs/actions")
 async def get_all_action_logs():
@@ -108,42 +109,43 @@ async def get_all_action_logs():
         print(f"Error fetching all ActionLogs: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving all ActionLogs: {e}")
 
-@router.get("/v1/logs/action/plant/{plantId}")
-async def get_action_logs_by_plant(
-    plantId: str,
-    sortBy: str = Query("latest", description='Sort order: "latest" (default) or "oldest"')
-):
-    """
-    Fetch action logs for a given plant ID, sorted by timestamp.
-    sortBy: "latest" (default, descending) or "oldest" (ascending)
-    """
-    db = get_firestore_db()
-    try:
-        query = db.collection("ActionLog").where("plantId", "==", plantId)
-        
-        if sortBy == "latest":
-            query = query.order_by("timestamp", direction="DESCENDING")
-        elif sortBy == "oldest":
-            query = query.order_by("timestamp", direction="ASCENDING")
-        else:
-            raise HTTPException(status_code=400, detail='Invalid sortBy value. Use "latest" or "oldest".')
-
-        docs = query.stream()
-        results = []
-        for doc in docs:
-            data = doc.to_dict()
-            # Convert Firestore Timestamps to ISO 8601 strings for JSON serialization
-            if 'timestamp' in data and hasattr(data['timestamp'], 'isoformat'):
-                data['timestamp'] = data['timestamp'].isoformat() + 'Z'
-            data['id'] = doc.id
-            results.append(data)
-
-        return results
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error fetching action logs by plant: {e}")
-        raise HTTPException(status_code=500, detail=f"Error retrieving action logs for plant {plantId}: {e}")
+# # v1.0.0
+# @router.get("/v1/logs/action/plant/{plantId}")
+# async def get_action_logs_by_plant(
+#     plantId: str,
+#     sortBy: str = Query("latest", description='Sort order: "latest" (default) or "oldest"')
+# ):
+#     """
+#     Fetch action logs for a given plant ID, sorted by timestamp.
+#     sortBy: "latest" (default, descending) or "oldest" (ascending)
+#     """
+#     db = get_firestore_db()
+#     try:
+#         query = db.collection("ActionLog").where("plantId", "==", plantId)
+#
+#         if sortBy == "latest":
+#             query = query.order_by("timestamp", direction="DESCENDING")
+#         elif sortBy == "oldest":
+#             query = query.order_by("timestamp", direction="ASCENDING")
+#         else:
+#             raise HTTPException(status_code=400, detail='Invalid sortBy value. Use "latest" or "oldest".')
+#
+#         docs = query.stream()
+#         results = []
+#         for doc in docs:
+#             data = doc.to_dict()
+#             # Convert Firestore Timestamps to ISO 8601 strings for JSON serialization
+#             if 'timestamp' in data and hasattr(data['timestamp'], 'isoformat'):
+#                 data['timestamp'] = data['timestamp'].isoformat() + 'Z'
+#             data['id'] = doc.id
+#             results.append(data)
+#
+#         return results
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         print(f"Error fetching action logs by plant: {e}")
+#         raise HTTPException(status_code=500, detail=f"Error retrieving action logs for plant {plantId}: {e}")
 
 @router.get("/v1/logs/action/zone/{zoneId}")
 async def get_action_logs_by_zone(
@@ -156,6 +158,9 @@ async def get_action_logs_by_zone(
     """
     db = get_firestore_db()
     try:
+        if zoneId not in VALID_ZONES:
+            raise HTTPException(status_code=400, detail="Invalid zone specified")
+
         query = db.collection("ActionLog").where("zone", "==", zoneId)
 
         if sortBy == "latest":
