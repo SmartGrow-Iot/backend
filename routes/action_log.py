@@ -2,7 +2,9 @@ from fastapi import APIRouter, HTTPException, Query
 from schema import ActionLogIn, ZoneActionLogIn, VALID_ZONES
 from firebase_config import get_firestore_db
 from datetime import datetime
-
+import time
+from functools import wraps
+from async_lru import alru_cache
 from services.mqtt_service import mqtt_client
 
 router = APIRouter(
@@ -15,6 +17,38 @@ ALLOWED_ACTIONS = {
     "light": {"light_on", "light_off"},
     "fan": {"fan_on", "fan_off"}
 }
+
+CACHE_TTL_SECONDS = 60
+
+@alru_cache(maxsize=128)
+async def _fetch_logs_from_firestore_cached(zoneId: str, sortBy: str, limit: int, ttl_hash: int):
+    """
+    This is the internal, cached function that actually queries Firestore.
+    The ttl_hash parameter is used to implement a time-based cache expiration.
+    """
+    print(f"CACHE MISS: Querying Firestore for zone: {zoneId}, sortBy: {sortBy}, limit: {limit}")
+
+    db = get_firestore_db()
+    query = db.collection("ActionLog").where("zone", "==", zoneId)
+
+    if sortBy == "latest":
+        query = query.order_by("timestamp", direction="DESCENDING")
+    else:
+        query = query.order_by("timestamp", direction="ASCENDING")
+
+    query = query.limit(limit)
+    docs = query.stream()
+
+    results = []
+    for doc in docs:
+        data = doc.to_dict()
+        if 'timestamp' in data and hasattr(data['timestamp'], 'isoformat'):
+            data['timestamp'] = data['timestamp'].isoformat() + 'Z'
+        data['id'] = doc.id
+        results.append(data)
+
+    return results
+
 
 # Shared handler logic
 def create_action_log(data: ZoneActionLogIn, category: str):
@@ -155,35 +189,24 @@ async def get_action_logs_by_zone(
 ):
     """
     Fetch action logs for a given zone ID, sorted by timestamp.
-    sortBy: "latest" (default, descending) or "oldest" (ascending)
+    sortBy: "latest" (default, descending) or "oldest" (ascending).
     limit: Maximum number of documents to retrieve (default 10, max 100)
     """
-    db = get_firestore_db()
     try:
         if zoneId not in VALID_ZONES:
             raise HTTPException(status_code=400, detail="Invalid zone specified")
 
-        query = db.collection("ActionLog").where("zone", "==", zoneId)
-
-        if sortBy == "latest":
-            query = query.order_by("timestamp", direction="DESCENDING")
-        elif sortBy == "oldest":
-            query = query.order_by("timestamp", direction="ASCENDING")
-        else:
+        if sortBy not in ["latest", "oldest"]:
             raise HTTPException(status_code=400, detail='Invalid sortBy value. Use "latest" or "oldest".')
 
-        query = query.limit(limit)
-
-        docs = query.stream()
-        results = []
-        for doc in docs:
-            data = doc.to_dict()
-            # Convert Firestore Timestamps to ISO 8601 strings for JSON serialization
-            if 'timestamp' in data and hasattr(data['timestamp'], 'isoformat'):
-                data['timestamp'] = data['timestamp'].isoformat() + 'Z'
-            data['id'] = doc.id
-            results.append(data)
-
+        # --- Call the Cached Function ---
+        ttl_hash = round(time.time() / CACHE_TTL_SECONDS)
+        results = await _fetch_logs_from_firestore_cached(
+            zoneId=zoneId,
+            sortBy=sortBy,
+            limit=limit,
+            ttl_hash=ttl_hash
+        )
         return results
     except HTTPException:
         raise
