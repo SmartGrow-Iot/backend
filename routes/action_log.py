@@ -199,7 +199,7 @@ async def get_action_logs_by_zone(
         if sortBy not in ["latest", "oldest"]:
             raise HTTPException(status_code=400, detail='Invalid sortBy value. Use "latest" or "oldest".')
 
-        # --- Call the Cached Function ---
+        # Call the cache function
         ttl_hash = round(time.time() / CACHE_TTL_SECONDS)
         results = await _fetch_logs_from_firestore_cached(
             zoneId=zoneId,

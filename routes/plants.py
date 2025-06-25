@@ -6,11 +6,31 @@ from pydantic import BaseModel
 from schema import VALID_MOISTURE_PINS, VALID_ZONES, PlantCreate, PlantListResponse, PlantOut, PlantStatus, \
     PlantThresholds, PlantUpdate, ZoneActuators, ZoneConfig, ZoneCreate, ZoneInfoResponse, ZoneSensors, SystemThresholds
 from google.cloud import firestore
+import time
+from async_lru import alru_cache
+
 
 router = APIRouter(
     tags=["plants"]
 )
 db = get_firestore_db()
+
+CACHE_TTL_SECONDS = 60
+
+@alru_cache(maxsize=256)
+async def _fetch_plant_from_firestore_cached(plant_id: str, _ttl_hash: int):
+    """
+    This is the internal, cached function that actually queries Firestore for a single plant.
+    The ttl_hash parameter is used to implement a time-based cache expiration.
+    """
+    print(f"CACHE MISS: Querying Firestore for plant_id: {plant_id}")
+
+    doc = db.collection("Plants").document(plant_id).get()
+
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Plant not found")
+
+    return doc.to_dict()
 
 @router.post("/v1/plants")
 async def create_plant(plant: PlantCreate):
@@ -115,10 +135,15 @@ async def create_plant(plant: PlantCreate):
 async def get_plant(plant_id: str):
     """Get complete plant data by ID"""
     try:
-        doc = db.collection("Plants").document(plant_id).get()
-        if not doc.exists:
-            raise HTTPException(status_code=404, detail="Plant not found")
-        return doc.to_dict()
+        # Call the cache function
+        ttl_hash = round(time.time() / CACHE_TTL_SECONDS)
+        plant_data = await _fetch_plant_from_firestore_cached(
+            plant_id=plant_id,
+            _ttl_hash=ttl_hash
+        )
+        return plant_data
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
