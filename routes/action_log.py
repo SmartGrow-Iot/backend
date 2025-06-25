@@ -150,11 +150,13 @@ async def get_all_action_logs():
 @router.get("/v1/logs/action/zone/{zoneId}")
 async def get_action_logs_by_zone(
     zoneId: str,
-    sortBy: str = Query("latest", description='Sort order: "latest" (default) or "oldest"')
+    sortBy: str = Query("latest", description='Sort order: "latest" (default) or "oldest"'),
+    limit: int = Query(10, ge=1, le=100, description="Maximum number of logs to return (1-100). Default is 10.")
 ):
     """
     Fetch action logs for a given zone ID, sorted by timestamp.
     sortBy: "latest" (default, descending) or "oldest" (ascending)
+    limit: Maximum number of documents to retrieve (default 10, max 100)
     """
     db = get_firestore_db()
     try:
@@ -169,6 +171,8 @@ async def get_action_logs_by_zone(
             query = query.order_by("timestamp", direction="ASCENDING")
         else:
             raise HTTPException(status_code=400, detail='Invalid sortBy value. Use "latest" or "oldest".')
+
+        query = query.limit(limit)
 
         docs = query.stream()
         results = []
