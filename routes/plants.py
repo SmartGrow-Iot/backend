@@ -20,7 +20,7 @@ CACHE_TTL_SECONDS = 60
 @alru_cache(maxsize=256)
 async def _fetch_plant_from_firestore_cached(plant_id: str, _ttl_hash: int):
     """
-    This is the internal, cached function that actually queries Firestore for a single plant.
+    Internal, cached function that queries Firestore for a single plant.
     The ttl_hash parameter is used to implement a time-based cache expiration.
     """
     print(f"CACHE MISS: Querying Firestore for plant_id: {plant_id}")
@@ -31,6 +31,27 @@ async def _fetch_plant_from_firestore_cached(plant_id: str, _ttl_hash: int):
         raise HTTPException(status_code=404, detail="Plant not found")
 
     return doc.to_dict()
+
+
+@alru_cache(maxsize=64)
+async def _fetch_plants_by_zone_cached(zone: str, _ttl_hash: int):
+    """
+    Internal, cached function to fetch all plants for a given zone from Firestore.
+    The ttl_hash parameter is used to implement a time-based cache expiration.
+    """
+    print(f"CACHE MISS: Querying Firestore for plants in zone: {zone}")
+
+    if zone not in VALID_ZONES:
+        raise HTTPException(status_code=400, detail="Invalid zone specified")
+
+    docs = db.collection("Plants").where("zone", "==", zone).stream()
+    plants = [doc.to_dict() for doc in docs]
+
+    return {
+        "success": True,
+        "count": len(plants),
+        "plants": plants
+    }
 
 @router.post("/v1/plants")
 async def create_plant(plant: PlantCreate):
@@ -342,17 +363,14 @@ async def get_user_plants(user_id: str):
 async def get_zone_plants(zone: str):
     """Get all plants in a specific zone"""
     try:
-        if zone not in VALID_ZONES:
-            raise HTTPException(status_code=400, detail="Invalid zone specified")
-            
-        docs = db.collection("Plants").where("zone", "==", zone).stream()
-        plants = [doc.to_dict() for doc in docs]
-        
-        return {
-            "success": True,
-            "count": len(plants),
-            "plants": plants
-        }
+        ttl_hash = round(time.time() / CACHE_TTL_SECONDS)
+        zone_data = await _fetch_plants_by_zone_cached(
+            zone=zone,
+            _ttl_hash=ttl_hash
+        )
+        return zone_data
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
