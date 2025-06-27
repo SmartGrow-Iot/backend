@@ -1,0 +1,7 @@
+.env
+spq-smartgrow-mock-firebase-adminsdk-fbsvc-c230dfe6f2.json
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+venv/
