@@ -29,7 +29,7 @@ async def run_ping():
             await asyncio.sleep(PING_INTERVAL_SECONDS)
 
             async with httpx.AsyncClient(timeout=30) as client:
-                logger.info(f"[{datetime.now(timezone.utc).isoformat()}] Ping: Waking up to ping server...")
+                logger.info("Ping: Waking up to ping server...")
                 response = await client.get(PING_URL)
                 response.raise_for_status()
 
