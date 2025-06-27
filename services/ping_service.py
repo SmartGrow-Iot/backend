@@ -13,8 +13,8 @@ logger = logging.getLogger("ping_service")
 load_dotenv()
 PING_URL = os.getenv("RENDER_EXTERNAL_URL")
 
-# Ping interval in seconds. 8 minutes (480s)
-PING_INTERVAL_SECONDS = 8 * 60
+# Ping interval in seconds. 10 minutes (600s)
+PING_INTERVAL_SECONDS = 10 * 60
 
 
 async def run_ping():
