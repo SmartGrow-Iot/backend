@@ -5,7 +5,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 from services.mqtt_service import mqtt_client
 import asyncio
-from services.garbage_collector_service import run_garbage_collector_periodically
+from services.garbage_collector_service import run_garbage_collector
+from services.ping_service import run_ping
+
 
 # Import Firebase initialization from firebase_config.py
 from firebase_config import initialize_firebase_admin, get_firestore_db
@@ -18,12 +20,17 @@ db = get_firestore_db()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # --- Code to run on application startup ---
     mqtt_client.connect()
     mqtt_client.subscribe_actuator_feedback()
-    gc_task = asyncio.create_task(run_garbage_collector_periodically())
+    gc_task = asyncio.create_task(run_garbage_collector())
+    ping_task = asyncio.create_task(run_ping())
     app.state.gc_task = gc_task
+    app.state.ping_task = ping_task
     yield
+    # --- Code to run on application shutdown ---
     app.state.gc_task.cancel()
+    app.state.ping_task.cancel()
     mqtt_client.disconnect()
 
 app = FastAPI(title="SmartGrow API", version="2.0.0", lifespan=lifespan)

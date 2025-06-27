@@ -6,7 +6,7 @@ import logging
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("garbage_collector_service")
+logger = logging.getLogger("gc_service")
 
 initialize_firebase_admin()
 db = get_firestore_db()
@@ -19,7 +19,7 @@ COLLECTIONS_TO_CLEAN = {
 
 def delete_collection_batch(db, collection_name: str, timestamp_field: str, cutoff_timestamp: datetime):
     """
-    The core logic for querying and deleting a batch of old documents.
+    The core logic for querying and deleting ActionLog and EnvironmentalData documents.
     This is a synchronous function called by our async task.
     """
     logger.info(f"[{datetime.now(timezone.utc).isoformat()}] GC: Starting deletion for '{collection_name}'...")
@@ -50,7 +50,7 @@ def delete_collection_batch(db, collection_name: str, timestamp_field: str, cuto
         f"[{datetime.now(timezone.utc).isoformat()}] GC: Finished. Deleted {deleted_count} documents from '{collection_name}'.")
 
 
-async def run_garbage_collector_periodically():
+async def run_garbage_collector():
     """
     An async task that runs forever, triggering the cleanup job at the correct time.
     """
@@ -85,7 +85,7 @@ async def run_garbage_collector_periodically():
             logger.info(f"[{datetime.now(timezone.utc).isoformat()}] GC: Daily cleanup job finished.")
 
         except asyncio.CancelledError:
-            logger.warning("Garbage Collector task is being cancelled. Shutting down gracefully.")
+            logger.info("Garbage Collector task is being cancelled. Shutting down gracefully.")
             break
         except Exception as e:
             logger.warning(f"An error occurred in the Garbage Collector task: {e}")
