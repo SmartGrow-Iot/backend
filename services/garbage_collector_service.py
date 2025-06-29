@@ -77,7 +77,7 @@ async def run_garbage_collector():
             # Cutoff time 7 days - today Friday (27/6/2025), delete all logs prior to last Friday (20/6/2025)
             today_utc = datetime.now(timezone.utc).date()
             cutoff_timestamp = datetime.combine(today_utc, datetime.min.time(), tzinfo=timezone.utc) - timedelta(
-                days=3)
+                days=7)
 
             for collection, timestamp_field in COLLECTIONS_TO_CLEAN.items():
                 delete_collection_batch(db, collection, timestamp_field, cutoff_timestamp)
