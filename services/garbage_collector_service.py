@@ -74,11 +74,10 @@ async def run_garbage_collector():
             # Run the job
             logger.info(f"[{datetime.now(timezone.utc).isoformat()}] GC: Run daily cleanup job.")
 
-            # Cutoff time 3 days - today Friday (27/6/2025), delete all logs prior to Tuesday (24/6/2025)
+            # Cutoff time 7 days - today Friday (27/6/2025), delete all logs prior to last Friday (20/6/2025)
             today_utc = datetime.now(timezone.utc).date()
-            start_of_yesterday = datetime.combine(today_utc, datetime.min.time(), tzinfo=timezone.utc) - timedelta(
+            cutoff_timestamp = datetime.combine(today_utc, datetime.min.time(), tzinfo=timezone.utc) - timedelta(
                 days=3)
-            cutoff_timestamp = start_of_yesterday
 
             for collection, timestamp_field in COLLECTIONS_TO_CLEAN.items():
                 delete_collection_batch(db, collection, timestamp_field, cutoff_timestamp)
