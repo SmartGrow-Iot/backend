@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="SmartGrow API", version="2.0.0", lifespan=lifespan)
 
 origins = [
-    "https://y-six-tan.vercel.app",  # monitoring dashboard
+    "https://smartgrow-kappa.vercel.app",  # monitoring dashboard
     "http://localhost:5173",         # local development
 ]
 
