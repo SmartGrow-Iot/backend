@@ -7,6 +7,7 @@ from services.mqtt_service import mqtt_client
 import asyncio
 from services.garbage_collector_service import run_garbage_collector
 from services.ping_service import run_ping
+from fastapi.middleware.cors import CORSMiddleware
 
 
 # Import Firebase initialization from firebase_config.py
@@ -34,6 +35,20 @@ async def lifespan(app: FastAPI):
     mqtt_client.disconnect()
 
 app = FastAPI(title="SmartGrow API", version="2.0.0", lifespan=lifespan)
+
+origins = [
+    "https://smartgrow-kappa.vercel.app",  # monitoring dashboard
+    "http://localhost:5173",         # local development
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
 
 # Include the sensor router
 from routes.user import router as user_router
